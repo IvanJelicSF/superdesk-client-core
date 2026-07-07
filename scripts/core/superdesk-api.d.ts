@@ -1417,6 +1417,10 @@ declare module 'superdesk-api' {
         fields_meta?: {
             [key: string]: {
                 draftjsState?: [import('draft-js').RawDraftContentState];
+
+                // ProseMirror document JSON; written by the Tiptap-based editor
+                // (editor3 replacement) instead of `draftjsState`
+                tiptapState?: [{[key: string]: any}];
                 annotations?: Array<any>;
             }
         };

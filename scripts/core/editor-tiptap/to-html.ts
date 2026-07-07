@@ -110,7 +110,7 @@ function serializeScope(
  * names in character order). Nested table/quote/custom-block content is a
  * separate scope and is deliberately not visited.
  */
-function collectAnnotationIds(blocks: Array<PmNode>): Map<string, number> {
+export function collectAnnotationIds(blocks: Array<PmNode>): Map<string, number> {
     const ids = new Map<string, number>();
 
     const visitInline = (block: PmNode) => {

@@ -26,7 +26,10 @@ export interface ITiptapValueStorage {
     rawContentState?: any;
 }
 
-export type ITiptapFieldConfig = ICommonFieldConfig;
+export interface ITiptapFieldConfig extends ICommonFieldConfig {
+    // when set, the stored string value is plain text instead of HTML
+    singleLine?: boolean;
+}
 
 export const TIPTAP_FIELD_TYPE = 'editor-tiptap';
 
