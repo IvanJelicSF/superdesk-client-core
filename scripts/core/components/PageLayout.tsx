@@ -13,6 +13,7 @@ export class PageContainer extends React.Component<any, any> {
 }
 
 interface IPageContainerItem {
+    children?: React.ReactNode;
     shrink?: boolean;
     'data-test-id'?: string;
 }

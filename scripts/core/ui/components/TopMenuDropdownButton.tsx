@@ -4,6 +4,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 export class TopMenuDropdownButton extends React.PureComponent<{
+    children?: React.ReactNode;
     onClick: () => void;
     disabled?: boolean;
     active: boolean;

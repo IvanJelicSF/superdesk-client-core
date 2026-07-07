@@ -4,6 +4,7 @@ import ng from 'core/services/ng';
 import {setExternalOptions} from '../actions';
 
 interface IProps {
+    children?: React.ReactNode;
     spellchecking: IEditorStore['spellchecking'];
     limitConfig: IEditorStore['limitConfig'];
     softLimitConfig: IEditorStore['softLimitConfig'];

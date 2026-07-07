@@ -5,6 +5,7 @@ import {IDesk} from 'superdesk-api';
 import {DonutChart} from 'superdesk-ui-framework/react';
 
 interface IProps {
+    children?: React.ReactNode;
     desk: IDesk;
     label: string;
     total: number;

@@ -166,7 +166,7 @@ export class ItemList extends React.Component<IProps, IState> {
                     scope={scope}
                 />
             );
-        }.bind(this);
+        }.bind(this) as (itemId: string) => JSX.Element;
         const isEmpty = !this.state.itemsList.length;
 
         const cssClass = classNames(

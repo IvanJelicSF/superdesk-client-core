@@ -10,7 +10,7 @@ import {onEventCapture} from './utils';
  * @name Button
  * @description Generic Button component
  */
-const Button: React.StatelessComponent<any> = ({
+const Button: React.FunctionComponent<any> = ({
     className,
     onClick,
     icon,

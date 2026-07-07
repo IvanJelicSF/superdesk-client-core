@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import './style.scss';
 
 interface IProps {
+    children?: React.ReactNode;
     flex?: boolean;
     noPadding?: boolean;
     className?: string | {[classname: string]: boolean};

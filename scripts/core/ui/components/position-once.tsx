@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import {PopupPositioner} from 'superdesk-ui-framework/react';
 
 interface IProps {
+    children?: React.ReactNode;
     delayed?: boolean;
     placement: Placement;
     onClose(): void;

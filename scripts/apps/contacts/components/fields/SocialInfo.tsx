@@ -6,7 +6,7 @@ import {Spacer} from 'superdesk-ui-framework/react';
 /**
  * SocialInfo - to display facebook, twitter etc. information of a contact
  */
-export const SocialInfo: React.StatelessComponent<any> = ({item}) => {
+export const SocialInfo: React.FunctionComponent<any> = ({item}) => {
     const keys = ['facebook', 'twitter', 'instagram'];
 
     return (

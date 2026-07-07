@@ -196,6 +196,6 @@ const mapStateToProps = (state: IEditorStore): IReduxStateProps => ({
     readOnly: state.readOnly,
 });
 
-export const EmbedBlock: React.ComponentType<IOwnProps> = connect<IReduxStateProps, IOwnProps, IDispatchProps>(
+export const EmbedBlock: React.ComponentType<IOwnProps> = connect<IReduxStateProps, IDispatchProps, IOwnProps>(
     mapStateToProps,
 )(EmbedBlockComponent);

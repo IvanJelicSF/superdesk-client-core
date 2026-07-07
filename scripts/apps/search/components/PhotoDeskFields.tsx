@@ -13,7 +13,7 @@ interface IProps {
     getLabelForFieldId?: any;
 }
 
-export const PhotoDeskFieldsComponent: React.StatelessComponent<IProps> = (props) => {
+export const PhotoDeskFieldsComponent: React.FunctionComponent<IProps> = (props) => {
     const {item, getLabelForFieldId, itemClassName} = props;
 
     return props.fieldsConfig

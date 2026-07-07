@@ -99,6 +99,7 @@ function AuthoringWidgetsProvider() {
 }
 
 export interface IWidgetIntegrationComponentProps {
+    children?: React.ReactNode;
     widgetName: string;
     pinned: boolean;
     widget: string;

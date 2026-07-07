@@ -5,12 +5,15 @@ import 'core';
 import 'apps';
 
 import Enzyme from 'enzyme';
-import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
+import Adapter from '@cfaester/enzyme-adapter-react-18';
 import {DEFAULT_ENGLISH_TRANSLATIONS} from 'core/utils';
 import {appConfig} from 'appConfig';
 import {ISuperdeskGlobalConfig} from 'superdesk-api';
 
 window.translations = DEFAULT_ENGLISH_TRANSLATIONS;
+
+// required for `act` to work with React 18's createRoot (used by the enzyme adapter)
+(window as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 Enzyme.configure({adapter: new Adapter()});
 

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 const notEmpty = (str) => typeof str === 'string' && str.length > 0;
 
-export const ContactName: React.StatelessComponent<any> = ({item}) => {
+export const ContactName: React.FunctionComponent<any> = ({item}) => {
     const displayContact = notEmpty(item.first_name) || notEmpty(item.last_name) ?
         [item.first_name, item.last_name].filter(notEmpty).join(' ')
         : item.organisation;

@@ -1,5 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
+import {act} from 'react-dom/test-utils';
 import {noop} from 'lodash';
 import {VocabularyItemsViewEdit} from '../components/VocabularyItemsViewEdit';
 import {s} from 'core/helpers/testUtils';
@@ -52,7 +53,11 @@ describe('vocabularies', () => {
             ),
         );
 
-        wrapper.setState({languages: []});
+        act(() => {
+            wrapper.setState({languages: []});
+        });
+
+        wrapper.update();
 
         const instance = wrapper.instance() as VocabularyItemsViewEdit;
 
@@ -187,7 +192,11 @@ describe('vocabularies', () => {
                     ),
                 );
 
-                wrapper.setState({languages: []});
+                act(() => {
+                    wrapper.setState({languages: []});
+                });
+
+                wrapper.update();
 
                 wrapper.update();
 
@@ -224,7 +233,11 @@ describe('vocabularies', () => {
                     ),
                 );
 
-                wrapper.setState({languages: []});
+                act(() => {
+                    wrapper.setState({languages: []});
+                });
+
+                wrapper.update();
 
                 const instance = wrapper.instance() as VocabularyItemsViewEdit;
 

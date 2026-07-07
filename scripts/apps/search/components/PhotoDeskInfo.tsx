@@ -11,7 +11,7 @@ interface IProps {
     item: IArticle;
 }
 
-export const PhotoDeskInfo: React.StatelessComponent<IProps> = (props) => {
+export const PhotoDeskInfo: React.FunctionComponent<IProps> = (props) => {
     const {item} = props;
 
     const datetime = ng.get('datetime');

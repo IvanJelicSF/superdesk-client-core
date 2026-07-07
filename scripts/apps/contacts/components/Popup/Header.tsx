@@ -4,7 +4,7 @@ import classNames from 'classnames';
 
 import Label from './Label';
 
-const Header: React.StatelessComponent<any> = (
+const Header: React.FunctionComponent<any> = (
     {text, onClose, children, className, noBorder, noPadding, centerText},
 ) => (
     <div

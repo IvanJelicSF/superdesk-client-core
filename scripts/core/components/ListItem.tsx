@@ -130,7 +130,7 @@ export class ListItemColumn extends React.Component<IPropsListItemColumn> {
     }
 }
 
-export class ListItemActionsMenu extends React.Component {
+export class ListItemActionsMenu extends React.Component<{children?: React.ReactNode}> {
     render() {
         return (
             <div className="sd-list-item__action-menu">

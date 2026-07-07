@@ -2,6 +2,7 @@ import React, {CSSProperties} from 'react';
 import {MountTracker} from './mount-tracker';
 
 interface IProps {
+    children?: React.ReactNode;
     // underscore is added to differentiate this from built-in React key
     key_: string;
 }

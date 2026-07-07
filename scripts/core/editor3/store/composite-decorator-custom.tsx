@@ -57,7 +57,7 @@ export class CompositeDecoratorCustom {
             const {decoratorProps, ...compositionProps} = props;
 
             const Composed = decorations.reduce(
-                (Composition: React.ComponentType, decoration, i) => {
+                (Composition: React.ComponentType<{children?: React.ReactNode}>, decoration, i) => {
                     if (decoration == null) {
                         return Composition;
                     }
@@ -75,7 +75,7 @@ export class CompositeDecoratorCustom {
                         </Component>
                     );
                 },
-                ({children}) => (<span>{children}</span>),
+                ({children}: {children?: React.ReactNode}) => (<span>{children}</span>),
             );
 
             return (

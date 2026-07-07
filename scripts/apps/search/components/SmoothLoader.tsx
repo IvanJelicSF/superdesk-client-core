@@ -3,6 +3,7 @@ import {Loader} from 'superdesk-ui-framework/react/components/Loader';
 import {ListItemLoader} from 'superdesk-ui-framework/react';
 
 interface IProps {
+    children?: React.ReactNode;
     loading: boolean;
 }
 

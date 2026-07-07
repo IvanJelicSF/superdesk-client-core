@@ -12,7 +12,7 @@ interface IProps {
     getActionsMenu?: any;
 }
 
-export const PhotoDeskFooter: React.StatelessComponent<IProps> = (props) => {
+export const PhotoDeskFooter: React.FunctionComponent<IProps> = (props) => {
     const {item} = props;
     const gridViewFooterFieldsConfig = appConfig.gridViewFooterFields ?? DEFAULT_GRID_VIEW_FOOTER_CONFIG;
 

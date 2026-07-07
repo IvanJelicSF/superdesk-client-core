@@ -57,6 +57,7 @@ export function dragEventShouldShowDropZone(event, editorProps: IPropsEditor3Com
 }
 
 interface IProps {
+    children?: React.ReactNode;
     dispatch(action: any);
     editorProps: any;
     className?: string;

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import {renderArea} from 'apps/contacts/helpers';
 
-export const ListItemInfo: React.StatelessComponent<any> = (props) => {
+export const ListItemInfo: React.FunctionComponent<any> = (props) => {
     const cssClass = classNames('item-info', {'item-info-reduced-rowheight': props.scope.singleLine});
     const itemProps = angular.extend({svc: props.svc, scope: props.scope}, props);
     const elemProps = {className: 'line'};

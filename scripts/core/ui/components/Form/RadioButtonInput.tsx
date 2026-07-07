@@ -7,7 +7,7 @@ import {Checkbox, Label, LineInput} from '.';
  * @name RadioButtonInput
  * @description Component to show radio-button
  */
-export const RadioButtonInput: React.StatelessComponent<any> = ({
+export const RadioButtonInput: React.FunctionComponent<any> = ({
     field,
     value,
     onChange,

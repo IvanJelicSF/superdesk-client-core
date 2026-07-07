@@ -14,6 +14,7 @@ import {loadDesksSamsSettings} from '../store/workspace/actions';
 import {getStoreSingleton, getStore, unsetStore} from '../store';
 
 interface IProps {
+    children?: React.ReactNode;
     onStoreInit?(store: Store): Promise<any>;
 }
 

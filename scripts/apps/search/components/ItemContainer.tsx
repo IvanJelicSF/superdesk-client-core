@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {gettext} from 'core/utils';
 
-export const ItemContainer: React.StatelessComponent<any> = (props) => {
+export const ItemContainer: React.FunctionComponent<any> = (props) => {
     const item = props.item;
     const desk = props.desk || null;
     let label;

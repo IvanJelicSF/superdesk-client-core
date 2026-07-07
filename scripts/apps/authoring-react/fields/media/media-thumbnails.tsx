@@ -20,7 +20,7 @@ interface IPropsSortableContainer {
     onSelect: IProps['onSelect'];
 }
 
-const SortableItem = SortableElement(
+const SortableItem = SortableElement<IPropsSortableItem>(
     class SortableItemComponent extends React.PureComponent<IPropsSortableItem> {
         render() {
             const {item, onSelect} = this.props;
@@ -61,7 +61,7 @@ const SortableItem = SortableElement(
     },
 );
 
-const SortableList = SortableContainer(
+const SortableList = SortableContainer<IPropsSortableContainer>(
     class SortableListComponent extends React.PureComponent<IPropsSortableContainer> {
         render() {
             const {mediaItems, onSelect} = this.props;

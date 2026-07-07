@@ -11,7 +11,7 @@ import {gettext} from 'core/utils';
  * @name PubStatus
  * @description Component to show published status of an item
  */
-export const PubStatus: React.StatelessComponent<any> = ({item, isPublic}) => {
+export const PubStatus: React.FunctionComponent<any> = ({item, isPublic}) => {
     let badge;
     let title = null;
 

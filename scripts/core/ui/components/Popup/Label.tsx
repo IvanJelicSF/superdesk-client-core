@@ -10,7 +10,7 @@ import {gettext} from 'core/utils';
  * @description Label used in a popup, typically in header
  */
 
-const Label: React.StatelessComponent<any> = ({text, children, centerText}) => (
+const Label: React.FunctionComponent<any> = ({text, children, centerText}) => (
     <span
         className={classNames(
             'popup__menu-label',

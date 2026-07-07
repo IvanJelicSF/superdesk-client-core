@@ -215,7 +215,7 @@ class ItemBase extends React.PureComponent<{wrapper: IPropsItem}> {
     }
 }
 
-const ItemBaseSortable = SortableElement(ItemBase);
+const ItemBaseSortable = SortableElement<{wrapper: IPropsItem}>(ItemBase);
 
 class ItemComponent extends React.PureComponent<IPropsItem> {
     render() {
@@ -228,7 +228,7 @@ class ItemComponent extends React.PureComponent<IPropsItem> {
     }
 }
 
-class ItemsContainerBase extends React.PureComponent {
+class ItemsContainerBase extends React.PureComponent<{children?: React.ReactNode}> {
     render() {
         return (
             <div
@@ -251,7 +251,7 @@ function getNewItemTemplate(
     };
 }
 
-const ItemsContainerBaseSortable = SortableContainer(ItemsContainerBase);
+const ItemsContainerBaseSortable = SortableContainer<{children?: React.ReactNode}>(ItemsContainerBase);
 
 export type IContentProfileFieldWithSystemId = IContentProfileField;
 

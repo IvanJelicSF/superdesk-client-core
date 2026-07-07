@@ -13,7 +13,7 @@ import {getMonthNames} from 'core/helpers/locale';
  * @name MonthPicker
  * @description Component to Pick months of DatePicker
  */
-export const MonthPicker: React.StatelessComponent<any> = ({selectedDate, onChange}) => {
+export const MonthPicker: React.FunctionComponent<any> = ({selectedDate, onChange}) => {
     const monthNames = getMonthNames(moment.locale());
     const rows = chunk(monthNames, 3);
 

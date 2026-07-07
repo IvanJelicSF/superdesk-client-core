@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {IGridComponentProps} from 'superdesk-api';
 
-export const Grid: React.StatelessComponent<IGridComponentProps> = (props) => {
+export const Grid: React.FunctionComponent<IGridComponentProps> = (props) => {
     const className = [
         'flex-grid',
         'flex-grid--wrap-items',
@@ -22,5 +22,5 @@ export const Grid: React.StatelessComponent<IGridComponentProps> = (props) => {
 Grid.propTypes = {
     boxed: PropTypes.bool,
     columns: PropTypes.number.isRequired,
-    children: PropTypes.arrayOf(PropTypes.node).isRequired,
+    children: PropTypes.arrayOf(PropTypes.node).isRequired as unknown as PropTypes.Validator<React.ReactNodeArray>,
 };

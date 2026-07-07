@@ -59,7 +59,7 @@ export interface IPropsConnected<T> {
     crudManager?: ICrudManager<T>;
 }
 
-class DefaultItemsContainerComponent extends React.PureComponent {
+class DefaultItemsContainerComponent extends React.PureComponent<{children?: React.ReactNode}> {
     render() {
         return (
             <div
@@ -72,7 +72,7 @@ class DefaultItemsContainerComponent extends React.PureComponent {
     }
 }
 
-const subNavWrapper: React.ComponentType = (props) => (
+const subNavWrapper: React.ComponentType<{children?: React.ReactNode}> = (props) => (
     <div style={{display: 'flex', flexDirection: 'column', width: '100%'}}>
         <div className="subnav">
             <div

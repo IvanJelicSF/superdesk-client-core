@@ -6,7 +6,7 @@ import {some, isEmpty} from 'lodash';
 /**
  * ContactLocation - to display address/location of a contact item
  */
-export const ContactLocation: React.StatelessComponent<any> = ({item}) => {
+export const ContactLocation: React.FunctionComponent<any> = ({item}) => {
     const ADDRESS_FIELDS = ['contact_address', 'locality', 'city', 'contact_state', 'postcode', 'country'];
 
     const canShow = some(ADDRESS_FIELDS, (field) => !isEmpty(item[field]));

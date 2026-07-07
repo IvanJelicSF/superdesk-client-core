@@ -95,7 +95,7 @@ export class DayPicker extends React.Component<any, any> {
 
     render() {
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const rows = chunk(this.state.dates, 7);
+        const rows = chunk<number>(this.state.dates, 7);
 
         return (
             <table className="table">

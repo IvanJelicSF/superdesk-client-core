@@ -1,7 +1,7 @@
 import React from 'react';
 import {gettext} from 'core/utils';
 
-export const ErrorBox: React.StatelessComponent<any> = (props) =>
+export const ErrorBox: React.FunctionComponent<any> = (props) =>
     React.createElement('div', {className: 'error-box'},
         React.createElement('p', {className: 'message'},
             gettext('There was an error archiving this item')),

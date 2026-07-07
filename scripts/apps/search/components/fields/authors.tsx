@@ -77,7 +77,7 @@ export class Authors extends SuperdeskReactComponent<IPropsItemListInfo> {
             const user = this.related.getUser(userId);
 
             return (
-                <strong>{user[options.displayField] ?? user.display_name}</strong>
+                <strong>{(user[options.displayField] ?? user.display_name) as React.ReactNode}</strong>
             );
         };
 

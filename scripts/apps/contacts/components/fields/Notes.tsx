@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {truncate} from 'lodash';
 
-export const Notes: React.StatelessComponent<any> = ({item}) => {
+export const Notes: React.FunctionComponent<any> = ({item}) => {
     const notes = item.notes;
     const displayNotes = truncate(notes, {length: 120});
 

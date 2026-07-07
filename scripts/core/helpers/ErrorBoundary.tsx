@@ -6,7 +6,7 @@ interface IState {
     hasError: boolean;
 }
 
-export class ErrorBoundary extends React.PureComponent<{}, IState> {
+export class ErrorBoundary extends React.PureComponent<{children?: React.ReactNode}, IState> {
     constructor(props) {
         super(props);
 

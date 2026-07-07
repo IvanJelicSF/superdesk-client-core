@@ -5,6 +5,7 @@ import {coreMenuGroups} from 'core/activity/activity';
 import {gettext} from 'core/utils';
 
 interface IProps {
+    children?: React.ReactNode;
     $route: any;
     superdesk: any;
     pageTitle: any;

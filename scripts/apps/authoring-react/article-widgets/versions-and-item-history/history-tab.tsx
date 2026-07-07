@@ -56,7 +56,9 @@ export class HistoryTab extends React.PureComponent<IProps, IState> {
             return null;
         }
 
-        const BaseHistoryItem: React.ComponentType<{items: Array<IHistoryItem>, current: number}> = (props) => {
+        const BaseHistoryItem: React.ComponentType<
+            {children?: React.ReactNode; items: Array<IHistoryItem>, current: number}
+        > = (props) => {
             const {items, current, children} = props;
             const item = items[current];
             const itemPrevious = items[current - 1];

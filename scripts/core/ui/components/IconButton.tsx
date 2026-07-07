@@ -12,7 +12,7 @@ import {Icon} from './';
  * @name IconButton
  * @description Icon with Button component
  */
-const IconButton: React.StatelessComponent<any> = ({
+const IconButton: React.FunctionComponent<any> = ({
     onClick,
     tabIndex,
     onKeyDown,

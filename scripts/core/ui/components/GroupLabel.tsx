@@ -1,6 +1,7 @@
 import React from 'react';
+import {ISpacingProps} from 'superdesk-api';
 
-export class GroupLabel extends React.PureComponent {
+export class GroupLabel extends React.PureComponent<ISpacingProps & {children?: React.ReactNode}> {
     render() {
         return (
             <div

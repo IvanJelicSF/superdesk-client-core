@@ -2186,6 +2186,7 @@ declare module 'superdesk-api' {
     // GENERIC FORM
 
     export interface IPropsGenericFormContainer<T> {
+        children?: React.ReactNode;
         page: IGenericListPageComponent<T>;
     }
 
@@ -2352,6 +2353,7 @@ declare module 'superdesk-api' {
     }
 
     export interface IListItemProps {
+        children?: React.ReactNode;
         onClick?(): void;
         onDoubleClick?(): void;
         className?: string;
@@ -2369,6 +2371,7 @@ declare module 'superdesk-api' {
     }
 
     export interface IPropsCard {
+        children?: React.ReactNode;
         width?: import('react').CSSProperties['width'];
         background?: import('react').CSSProperties['background'];
         padding?: import('react').CSSProperties['padding'];
@@ -2377,6 +2380,7 @@ declare module 'superdesk-api' {
     }
 
     export interface IPropsListItemColumn {
+        children?: React.ReactNode;
         ellipsisAndGrow?: boolean;
         grow?: boolean;
         noBorder?: boolean;
@@ -2387,10 +2391,12 @@ declare module 'superdesk-api' {
     }
 
     export interface IPropsListItemRow {
+        children?: React.ReactNode;
         justifyContent?: string;
     }
 
     export interface IPropsWidgetHeading {
+        children?: React.ReactNode;
         widgetName: string;
         editMode: boolean;
         widgetId: string;
@@ -2427,6 +2433,7 @@ declare module 'superdesk-api' {
     }
 
     export interface IDropZoneComponentProps {
+        children?: React.ReactNode;
         label?: string;
         className?: string;
         multiple?: boolean;
@@ -2511,6 +2518,7 @@ declare module 'superdesk-api' {
     }
 
     interface IPropsBadge extends ISpacingProps {
+        children?: React.ReactNode;
         type: 'default' | 'primary' | 'success' | 'warning' | 'alert' | 'highlight' | 'light';
         square?: boolean;
     }
@@ -2536,6 +2544,7 @@ declare module 'superdesk-api' {
     }
 
     export interface IPropsSpacerInlineFlex {
+        children?: React.ReactNode;
         h?: boolean; // horizontal
         v?: boolean; // vertical
         gap: '4' | '8' | '16' | '32' | '64';
@@ -3390,11 +3399,11 @@ declare module 'superdesk-api' {
             ListItem: React.ComponentType<IListItemProps>;
             ListItemColumn: React.ComponentType<IPropsListItemColumn>;
             ListItemRow: React.ComponentType<IPropsListItemRow>;
-            ListItemActionsMenu: React.ComponentType;
+            ListItemActionsMenu: React.ComponentType<{children?: React.ReactNode}>;
             List: {
-                Item: React.ComponentType<{onClick: any}>;
-                Row: React.ComponentType;
-                Column: React.ComponentType<{grow: boolean}>;
+                Item: React.ComponentType<{children?: React.ReactNode; onClick: any}>;
+                Row: React.ComponentType<{children?: React.ReactNode}>;
+                Column: React.ComponentType<{children?: React.ReactNode; grow: boolean}>;
             },
             Grid: React.ComponentType<IGridComponentProps>;
             Alert: React.ComponentType<IAlertComponentProps>;
@@ -3405,11 +3414,11 @@ declare module 'superdesk-api' {
             SelectUser: React.ComponentType<IPropsSelectUser>;
             UserAvatar: React.ComponentType<{userId: string}>;
             ArticleItemConcise: React.ComponentType<{article: IArticle}>;
-            GroupLabel: React.ComponentType<ISpacingProps>;
+            GroupLabel: React.ComponentType<ISpacingProps & {children?: React.ReactNode}>;
             InputLabel: React.ComponentType<{text: string}>;
             Icon: React.ComponentType<IPropsIcon>;
             IconBig: React.ComponentType<IPropsIconBig>;
-            TopMenuDropdownButton: React.ComponentType<{onClick: () => void; disabled?: boolean; active: boolean; pulsate?: boolean; 'data-test-id'?: string; tooltip?: string}>;
+            TopMenuDropdownButton: React.ComponentType<{children?: React.ReactNode; onClick: () => void; disabled?: boolean; active: boolean; pulsate?: boolean; 'data-test-id'?: string; tooltip?: string}>;
 
             // TODO: move the component with all its dependencies to a separate project and use via npm package
             getAuthoringComponent: <T extends IBaseRestApiResponse>() => React.ComponentType<IPropsAuthoring<T>>;
@@ -3422,7 +3431,7 @@ declare module 'superdesk-api' {
             Spacer: React.ComponentType<IPropsSpacer>;
             SpacerBlock: React.ComponentType<ISpacerBlock>;
             SpacerInlineFlex: React.ComponentType<IPropsSpacerInlineFlex>;
-            Center: React.ComponentType;
+            Center: React.ComponentType<{children?: React.ReactNode}>;
             Editor3Html: React.ComponentType<IEditor3HtmlProps>;
             AuthoringWidgetHeading: React.ComponentType<IPropsWidgetHeading>;
             AuthoringWidgetLayout: React.ComponentType<IAuthoringWidgetLayoutProps>;
@@ -4018,6 +4027,7 @@ declare module 'superdesk-api' {
     // CUSTOM FIELD TYPES
 
     export interface IEditorComponentContainerProps {
+        children?: React.ReactNode;
         /**
          * miniToolbar is meant for displaying a small amount of details like character count.
          * It's implemented as a separate prop, in order to allow flexible layout options.

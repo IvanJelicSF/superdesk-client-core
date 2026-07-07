@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {IFigureComponentProps} from 'superdesk-api';
 
-export const Figure: React.StatelessComponent<IFigureComponentProps> = (props) => {
+export const Figure: React.FunctionComponent<IFigureComponentProps> = (props) => {
     const editable = props.onRemove != null;
 
     return (
@@ -26,5 +26,4 @@ export const Figure: React.StatelessComponent<IFigureComponentProps> = (props) =
 Figure.propTypes = {
     caption: PropTypes.string,
     onRemove: PropTypes.func,
-    children: PropTypes.node,
 };

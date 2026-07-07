@@ -1,6 +1,7 @@
 import React from 'react';
 
 interface IProps {
+    children?: React.ReactNode;
     header: string;
     onClose(): void;
 }

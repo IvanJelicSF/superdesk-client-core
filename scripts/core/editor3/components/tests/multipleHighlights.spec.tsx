@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {mount} from 'enzyme';
+import {act} from 'react-dom/test-utils';
 import PropTypes from 'prop-types';
 import {EditorState, ContentState, SelectionState} from 'draft-js';
 import {MultipleHighlights} from '../MultipleHighlights';
@@ -101,7 +102,9 @@ describe('multipleHighlights.component', () => {
     });
 
     it('should add, remove, and update highlights', () => {
-        highlightsManager.addHighlight('COMMENT', highlightData);
+        act(() => {
+            highlightsManager.addHighlight('COMMENT', highlightData);
+        });
 
         const styleName = getEditorState()
             .getCurrentContent()
@@ -113,12 +116,16 @@ describe('multipleHighlights.component', () => {
             JSON.stringify(highlightsManager.getHighlightData(styleName)),
         ).toBe(JSON.stringify(highlightDataExpectedResponse));
 
-        highlightsManager.updateHighlightData(styleName, highlightDataUpdate);
+        act(() => {
+            highlightsManager.updateHighlightData(styleName, highlightDataUpdate);
+        });
         expect(
             JSON.stringify(highlightsManager.getHighlightData(styleName)),
         ).toBe(JSON.stringify(highlightDataUpdate));
 
-        highlightsManager.removeHighlight(styleName);
+        act(() => {
+            highlightsManager.removeHighlight(styleName);
+        });
 
         const styleNameAfterRemoval = getEditorState()
             .getCurrentContent()
@@ -134,20 +141,28 @@ describe('multipleHighlights.component', () => {
 
     it('should keep track of highlights count', () => {
         expect(highlightsManager.getHighlightsCount()).toBe(0);
-        highlightsManager.addHighlight('COMMENT', {});
+        act(() => {
+            highlightsManager.addHighlight('COMMENT', {});
+        });
 
         expect(highlightsManager.getHighlightsCount()).toBe(1);
-        highlightsManager.addHighlight('COMMENT', {});
+        act(() => {
+            highlightsManager.addHighlight('COMMENT', {});
+        });
 
         expect(highlightsManager.getHighlightsCount()).toBe(2);
         expect(highlightsManager.getHighlightsCount('ANNOTATION')).toBe(0);
 
-        highlightsManager.addHighlight('ANNOTATION', {});
+        act(() => {
+            highlightsManager.addHighlight('ANNOTATION', {});
+        });
         expect(highlightsManager.getHighlightsCount()).toBe(3);
         expect(highlightsManager.getHighlightsCount('ANNOTATION')).toBe(1);
         expect(highlightsManager.getHighlightsCount('COMMENT')).toBe(2);
 
-        highlightsManager.addHighlight('ANNOTATION', {});
+        act(() => {
+            highlightsManager.addHighlight('ANNOTATION', {});
+        });
         expect(highlightsManager.getHighlightsCount()).toBe(4);
         expect(highlightsManager.getHighlightsCount('ANNOTATION')).toBe(2);
         expect(highlightsManager.getHighlightsCount('COMMENT')).toBe(2);
@@ -155,7 +170,9 @@ describe('multipleHighlights.component', () => {
 
     it('should throw an error when invalid actions are attempted', () => {
         expect(() => {
-            highlightsManager.addHighlight('invalid-highlight-type', {});
+            act(() => {
+                highlightsManager.addHighlight('invalid-highlight-type', {});
+            });
         }).toThrow();
 
         expect(() => {
@@ -175,26 +192,36 @@ describe('multipleHighlights.component', () => {
         }).toThrow();
 
         expect(() => {
-            highlightsManager.updateHighlightData('non-existent-highlight-id', {});
+            act(() => {
+                highlightsManager.updateHighlightData('non-existent-highlight-id', {});
+            });
         }).toThrow();
     });
 
     it('should only expand', () => {
         expect(highlightsManager.getHighlightsCount()).toBe(0);
-        highlightsManager.addHighlight('COMMENT', {});
+        act(() => {
+            highlightsManager.addHighlight('COMMENT', {});
+        });
 
         expect(highlightsManager.getHighlightsCount()).toBe(1);
-        highlightsManager.addHighlight('COMMENT', {});
+        act(() => {
+            highlightsManager.addHighlight('COMMENT', {});
+        });
 
         expect(highlightsManager.getHighlightsCount()).toBe(2);
         expect(highlightsManager.getHighlightsCount('ANNOTATION')).toBe(0);
 
-        highlightsManager.addHighlight('ANNOTATION', {});
+        act(() => {
+            highlightsManager.addHighlight('ANNOTATION', {});
+        });
         expect(highlightsManager.getHighlightsCount()).toBe(3);
         expect(highlightsManager.getHighlightsCount('ANNOTATION')).toBe(1);
         expect(highlightsManager.getHighlightsCount('COMMENT')).toBe(2);
 
-        highlightsManager.addHighlight('ANNOTATION', {});
+        act(() => {
+            highlightsManager.addHighlight('ANNOTATION', {});
+        });
         expect(highlightsManager.getHighlightsCount()).toBe(4);
         expect(highlightsManager.getHighlightsCount('ANNOTATION')).toBe(2);
         expect(highlightsManager.getHighlightsCount('COMMENT')).toBe(2);

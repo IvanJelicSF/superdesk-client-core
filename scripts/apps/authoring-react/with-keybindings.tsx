@@ -2,6 +2,7 @@ import React from 'react';
 import {IKeyBindings} from 'superdesk-api';
 
 interface IProps {
+    children?: React.ReactNode;
     keyBindings: IKeyBindings;
 }
 

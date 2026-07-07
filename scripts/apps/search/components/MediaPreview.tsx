@@ -17,7 +17,7 @@ interface IProps {
 /**
  * Media Preview - renders item thumbnail
  */
-export const MediaPreview: React.StatelessComponent<IProps> = (props) => {
+export const MediaPreview: React.FunctionComponent<IProps> = (props) => {
     const {item, multiSelect} = props;
     const headline = item.headline || item.slugline || item.type;
     // headline could contains html tags hence stripping for tooltips

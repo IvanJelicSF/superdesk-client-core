@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {gettext} from 'core/utils';
 
-export const State: React.StatelessComponent<any> = ({item}) => {
+export const State: React.FunctionComponent<any> = ({item}) => {
     const cssClass = item.contact_state ? 'state-label' : null;
 
     return (

@@ -7,6 +7,7 @@ import {assertNever} from 'core/helpers/typescript-helpers';
 import {IFormGroup} from 'superdesk-api';
 
 interface IProps<T extends object> {
+    children?: React.ReactNode;
     group: IFormGroup<T>;
 }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
+import {act} from 'react-dom/test-utils';
 import {noop} from 'lodash';
 import {getFormFieldComponent} from '../form-field';
 import {assertNever} from 'core/helpers/typescript-helpers';
@@ -106,11 +107,22 @@ describe('generic form', () => {
                     </div>,
                 );
 
-                setTimeout(() => { // wait for data fetching (only used by some input types)
-                    wrapper.update();
+                setTimeout(async () => { // wait for data fetching (only used by some input types)
                     const classNameSelector = reworkedComponents.includes(type)
                         ? '.sd-input--invalid'
                         : '.sd-line-input--invalid';
+
+                    // under React 18 data-fetch state updates flush asynchronously
+                    for (let i = 0; i < 20; i++) {
+                        await act(async () => undefined);
+                        wrapper.update();
+
+                        if (wrapper.find(classNameSelector).length > 0) {
+                            break;
+                        }
+
+                        await new Promise((resolve) => setTimeout(resolve));
+                    }
 
                     expect(wrapper.find(classNameSelector).length).toBe(1);
                     expect(wrapper.html()).toContain(message);
@@ -147,11 +159,21 @@ describe('generic form', () => {
                     </div>,
                 );
 
-                setTimeout(() => { // wait for data fetching (only used by some input types)
-                    wrapper.update();
-
+                setTimeout(async () => { // wait for data fetching (only used by some input types)
                     const classNameSelector =
                         reworkedComponents.includes(type) ? '.sd-input--required' : '.sd-line-input--required';
+
+                    // under React 18 data-fetch state updates flush asynchronously
+                    for (let i = 0; i < 20; i++) {
+                        await act(async () => undefined);
+                        wrapper.update();
+
+                        if (wrapper.find(classNameSelector).length > 0) {
+                            break;
+                        }
+
+                        await new Promise((resolve) => setTimeout(resolve));
+                    }
 
                     expect(wrapper.find(classNameSelector).length).toBe(1);
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export class Page extends React.PureComponent<{title: string}> {
+export class Page extends React.PureComponent<{children?: React.ReactNode; title: string}> {
     render() {
         const {title, children} = this.props;
 

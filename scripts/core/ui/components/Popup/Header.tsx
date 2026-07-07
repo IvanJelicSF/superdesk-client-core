@@ -9,7 +9,7 @@ import Label from './Label';
  * @name Header
  * @description Header Component of a popup
  */
-const Header: React.StatelessComponent<any> = (
+const Header: React.FunctionComponent<any> = (
     {text, onClose, children, className, noBorder, noPadding, centerText},
 ): any => (
     <div

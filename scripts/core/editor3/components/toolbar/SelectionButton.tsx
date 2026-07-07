@@ -23,7 +23,7 @@ interface IProps {
  * that are bound exclusively to having text selected in the editor, such as: links, comments,
  * annotations, etc. Note that a precondition prop may be supplied which precedes any other condition.
  */
-const SelectionButtonComponent: React.StatelessComponent<IProps> = (
+const SelectionButtonComponent: React.FunctionComponent<IProps> = (
     {editorState, onClick, tooltip, iconName, uiTheme, precondition = true},
 ) => {
     const isCollapsed = editorState.getSelection().isCollapsed();

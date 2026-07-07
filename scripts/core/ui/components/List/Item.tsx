@@ -7,7 +7,7 @@ import classNames from 'classnames';
  * @name Item
  * @description Component to encapsulate a list item
  */
-export const Item: React.StatelessComponent<any> = (
+export const Item: React.FunctionComponent<any> = (
     {children, noBg, noHover, shadow, activated, className, onClick, margin},
 ) => (
     <div

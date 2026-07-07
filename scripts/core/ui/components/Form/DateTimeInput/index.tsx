@@ -13,7 +13,7 @@ const moment: any = momentAlias;
  * @name DateTimeInput
  * @description One Component packaging DatePicker and TimePicker to pick date and time
  */
-export const DateTimeInput: React.StatelessComponent<any> = ({
+export const DateTimeInput: React.FunctionComponent<any> = ({
     field,
     label,
     value,

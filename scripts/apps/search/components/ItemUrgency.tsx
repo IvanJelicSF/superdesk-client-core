@@ -8,7 +8,7 @@ interface IProps {
     language: string | undefined;
 }
 
-export const ItemUrgency: React.StatelessComponent<IProps> = (props) => {
+export const ItemUrgency: React.FunctionComponent<IProps> = (props) => {
     const metadata = ng.get('metadata');
 
     const {language} = props;

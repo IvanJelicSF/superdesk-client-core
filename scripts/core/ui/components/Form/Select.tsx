@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
  * @name Select
  * @description Component to select a list from dropdown
  */
-export const Select: React.StatelessComponent<any> = (
+export const Select: React.FunctionComponent<any> = (
     {field, value, onChange, options, readOnly, clearable, autoFocus, onFocus, refNode},
 ) => (
     <select

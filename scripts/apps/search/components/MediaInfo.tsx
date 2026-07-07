@@ -11,7 +11,7 @@ interface IProps {
 /**
  * Media Info - renders item metadata
  */
-export const MediaInfo: React.StatelessComponent<IProps> = (props) => {
+export const MediaInfo: React.FunctionComponent<IProps> = (props) => {
     const datetime = ng.get('datetime');
 
     const item = props.item;

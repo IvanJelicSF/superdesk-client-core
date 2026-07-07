@@ -5,6 +5,7 @@ import {Portal} from '../Portal';
 export type IModalSize = 'large' | 'x-large' | 'fill' | 'fullscreen';
 
 interface IProps {
+    children?: React.ReactNode;
     id: string;
     size?: IModalSize;
     closeOnEsc?: boolean;

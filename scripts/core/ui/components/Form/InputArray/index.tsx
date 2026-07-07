@@ -13,7 +13,7 @@ import './style.scss';
  * @name InputArray
  * @description Component to create an array of input components
  */
-export const InputArray: React.StatelessComponent<any> = ({
+export const InputArray: React.FunctionComponent<any> = ({
     field,
     value,
     onChange,

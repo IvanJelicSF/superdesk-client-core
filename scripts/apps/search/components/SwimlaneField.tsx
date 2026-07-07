@@ -7,7 +7,7 @@ interface IProps {
     fieldId: string;
 }
 
-export const SwimlaneField: React.StatelessComponent<IProps> = (props) => {
+export const SwimlaneField: React.FunctionComponent<IProps> = (props) => {
     const {item, fieldId} = props;
 
     const Component = fields[fieldId];

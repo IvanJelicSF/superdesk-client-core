@@ -4,6 +4,7 @@ import React from 'react';
 import {assertNever} from 'core/helpers/typescript-helpers';
 
 interface IPropsSidePanel {
+    children?: React.ReactNode;
     side: 'left' | 'right';
     width: number; // required because due to a bad implementation of SidePanelTools, they go on top heading text
     'data-test-id'?: string;
@@ -33,7 +34,7 @@ export class SidePanel extends React.Component<IPropsSidePanel> {
     }
 }
 
-export class SidePanelHeader extends React.Component {
+export class SidePanelHeader extends React.Component<{children?: React.ReactNode}> {
     render() {
         return (
             <div className="side-panel__header side-panel__header--border-b">
@@ -43,7 +44,7 @@ export class SidePanelHeader extends React.Component {
     }
 }
 
-export class SidePanelContent extends React.Component {
+export class SidePanelContent extends React.Component<{children?: React.ReactNode}> {
     render() {
         return (
             <div className="side-panel__content">
@@ -53,7 +54,7 @@ export class SidePanelContent extends React.Component {
     }
 }
 
-export class SidePanelContentBlock extends React.Component {
+export class SidePanelContentBlock extends React.Component<{children?: React.ReactNode}> {
     render() {
         return (
             <div className="side-panel__content-block">
@@ -63,7 +64,7 @@ export class SidePanelContentBlock extends React.Component {
     }
 }
 
-export class SidePanelHeading extends React.Component {
+export class SidePanelHeading extends React.Component<{children?: React.ReactNode}> {
     render() {
         return (
             <div className="side-panel__heading">
@@ -73,7 +74,7 @@ export class SidePanelHeading extends React.Component {
     }
 }
 
-export class SidePanelTools extends React.Component {
+export class SidePanelTools extends React.Component<{children?: React.ReactNode}> {
     render() {
         return (
             <div className="side-panel__tools">
@@ -83,7 +84,7 @@ export class SidePanelTools extends React.Component {
     }
 }
 
-export class SidePanelFooter extends React.Component {
+export class SidePanelFooter extends React.Component<{children?: React.ReactNode}> {
     render() {
         return (
             <div className="side-panel__footer side-panel__footer--button-box">

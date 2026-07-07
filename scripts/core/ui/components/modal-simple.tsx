@@ -8,6 +8,7 @@ export interface IModalSimpleAction {
 }
 
 interface IProps {
+    children?: React.ReactNode;
     title: string;
     closeModal(): void;
     footerButtons?: Array<IModalSimpleAction>;

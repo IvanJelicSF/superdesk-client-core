@@ -13,7 +13,7 @@ interface IProps {
 /**
  * Media Preview - renders item thumbnail
  */
-export const PhotoDeskPreview: React.StatelessComponent<IProps> = (props) => {
+export const PhotoDeskPreview: React.FunctionComponent<IProps> = (props) => {
     const {multiSelect} = props;
     const item = props.item;
     const classType = 'sd-grid-item__type-icon filetype-icon-' + props.item.type;

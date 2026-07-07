@@ -1,10 +1,12 @@
 import React from 'react';
 
 interface IWrapper {
-    wrapper: React.ComponentType;
+    children?: React.ReactNode;
+    wrapper: React.ComponentType<{children?: React.ReactNode}>;
 }
 
 interface IDirectElement {
+    children?: React.ReactNode;
     tagName?: keyof React.ReactHTML;
     className?: string;
     style?: React.CSSProperties;

@@ -1,6 +1,7 @@
 import React from 'react';
 
 interface IProps {
+    children?: React.ReactNode;
     type?: 'rounded' | 'square';
     color?: 'gray-lighter' | 'gray' | 'blue-lighter' | 'blue';
     onRemove?(): void;

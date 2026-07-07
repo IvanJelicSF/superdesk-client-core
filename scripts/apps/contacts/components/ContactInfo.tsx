@@ -6,7 +6,11 @@ import {isEmpty, findKey} from 'lodash';
 import {gettext} from 'core/utils';
 import {IContact} from 'superdesk-api';
 import {ContentDivider, Icon, Spacer, SpacerBlock} from 'superdesk-ui-framework/react';
-import {WithDivider} from '@sourcefabric/common';
+import {WithDivider as WithDividerOriginal} from '@sourcefabric/common';
+
+const WithDivider = WithDividerOriginal as unknown as React.ComponentType<
+    ConstructorParameters<typeof WithDividerOriginal>[0]
+>;
 
 interface IProps {
     item: IContact;
@@ -14,7 +18,7 @@ interface IProps {
     hideHeader?: boolean;
 }
 
-const ContactDetail: React.FunctionComponent = ({children}: {children: Array<JSX.Element>}) => (
+const ContactDetail: React.FunctionComponent<{children: Array<React.ReactNode>}> = ({children}) => (
     <Spacer h gap="8" justifyContent="start" alignItems="center" noWrap>
         {children}
     </Spacer>

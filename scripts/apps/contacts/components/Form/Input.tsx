@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-export const Input: React.StatelessComponent<any> = ({
+export const Input: React.FunctionComponent<any> = ({
     field,
     type,
     value,

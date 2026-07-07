@@ -5,6 +5,7 @@ import {FormGroupDirectionWrapper} from './form-direction-wrapper';
 import {IFormGroup} from 'superdesk-api';
 
 interface IProps<T extends object> {
+    children?: React.ReactNode;
     group: IFormGroup<T>;
 }
 

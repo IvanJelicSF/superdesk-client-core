@@ -4,6 +4,7 @@ import * as React from 'react';
 import {CompositeDecorator, ContentBlock, ContentState} from 'draft-js';
 
 interface IProps {
+    children?: React.ReactNode;
     contentState: ContentState;
     entityKey: string;
     color?: string;

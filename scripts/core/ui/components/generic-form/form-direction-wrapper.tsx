@@ -5,6 +5,7 @@ import {omit} from 'lodash';
 import {IFormGroup} from 'superdesk-api';
 
 interface IProps<T extends object> {
+    children?: React.ReactNode;
     className?: string;
     direction: IFormGroup<T>['direction'];
 }

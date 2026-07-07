@@ -8,7 +8,7 @@ import {gettext} from 'core/utils';
 interface IProps {
     renditions: IArticle['renditions'];
     cropSizes: Array<IVocabularyItem>;
-    wrapper: React.ComponentType;
+    wrapper: React.ComponentType<{children?: React.ReactNode}>;
 }
 
 export class ImageCrops extends React.PureComponent<IProps> {

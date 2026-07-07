@@ -2,6 +2,7 @@ import React from 'react';
 import * as Layout from 'superdesk-ui-framework/react/components/Layouts';
 
 export interface IPropsSendToPanel {
+    children?: React.ReactNode;
     /**
      * Whether panel markup from ui-framework v3 RC should be used.
      * It should be used when {@see authoringReactViewEnabled},

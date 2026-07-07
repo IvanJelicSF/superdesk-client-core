@@ -1,6 +1,7 @@
 import React from 'react';
 import {Provider} from 'react-redux';
 import {mount} from 'enzyme';
+import {act} from 'react-dom/test-utils';
 import mockStore, {embedBlockAndContent} from './utils';
 import {EmbedBlock} from '../embeds/EmbedBlock';
 import {EmbedInputComponent as EmbedInput} from '../embeds/EmbedInput';
@@ -89,7 +90,9 @@ describe('editor3.components.embed-input', () => {
         instance.value = 'http://will.fail';
         wrapper.simulate('submit');
 
-        $rootScope.$apply();
+        act(() => {
+            $rootScope.$apply();
+        });
         wrapper.update();
 
         expect(wrapper.state('error')).toBe('this is the error');

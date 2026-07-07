@@ -8,7 +8,7 @@ import {ButtonStack} from './ButtonStack';
  * @name Button
  * @description Button of a Sub Nav bar
  */
-export const Button: React.StatelessComponent<any> = (
+export const Button: React.FunctionComponent<any> = (
     {children, className, right, buttonClassName, onClick, padded},
 ) => (
     <ButtonStack
