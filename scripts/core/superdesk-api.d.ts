@@ -3727,6 +3727,12 @@ declare module 'superdesk-api' {
             // Use tansa spellchecker. If enabled, other spellcheckers will not be available.
             useTansaProofing?: boolean;
 
+            /**
+             * Enables the experimental Tiptap-based authoring field
+             * (editor3 replacement; development-only until feature parity).
+             */
+            tiptapEditor?: boolean;
+
             editFeaturedImage?: any;
             validatePointOfInterestForImages?: any;
             autopopulateByline?: any;
