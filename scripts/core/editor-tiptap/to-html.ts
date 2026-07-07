@@ -40,6 +40,9 @@ interface ISerializeContext {
     tagStyles: Set<string>;
     // per-scope annotation ids: styleName -> 1-based id in order of first appearance
     annotationIds: Map<string, number>;
+    // doc-level Draft.js-style entity ordinals, used as rawKey fallback for
+    // media nodes that were not converted from a draftjsState (see below)
+    entityOrdinals?: Map<PmNode, number>;
     isCodeBlock?: boolean;
 }
 
@@ -56,8 +59,9 @@ export function pmDocToHtml(doc: PmNode | {[key: string]: any}, options: IPmToHt
 
     const tagStyles = options.tagStylesOverride
         ?? new Set(customEditorTags.map(({editor3Style}) => editor3Style));
+    const blocks = childrenOf(docNode);
 
-    return serializeScope(childrenOf(docNode), options.disabled ?? [], tagStyles);
+    return serializeScope(blocks, options.disabled ?? [], tagStyles, collectEntityOrdinals(blocks));
 }
 
 function childrenOf(node: PmNode): Array<PmNode> {
@@ -76,11 +80,17 @@ function childrenOf(node: PmNode): Array<PmNode> {
  * by its own `editor3StateToHtml` call, with its own annotation numbering and
  * its own leading/trailing empty-paragraph trim.
  */
-function serializeScope(blocks: Array<PmNode>, disabled: Array<string>, tagStyles: Set<string>): string {
+function serializeScope(
+    blocks: Array<PmNode>,
+    disabled: Array<string>,
+    tagStyles: Set<string>,
+    entityOrdinals?: Map<PmNode, number>,
+): string {
     const ctx: ISerializeContext = {
         disabled,
         tagStyles,
         annotationIds: collectAnnotationIds(blocks),
+        entityOrdinals,
     };
 
     const generated = blocks.map((block) => serializeBlock(block, ctx)).join('').trim();
@@ -141,6 +151,73 @@ function collectAnnotationIds(blocks: Array<PmNode>): Map<string, number> {
     return ids;
 }
 
+/**
+ * Draft.js assigned entity keys by order of first appearance in the content
+ * (links and atomic entities alike), and media markup embeds that key as
+ * `editor_<key>`. Media converted from a draftjsState carries the original
+ * key in its `rawKey` attr; media created by import or editing does not, and
+ * falls back to these ordinals so the output matches what editor3 would
+ * produce for the same content.
+ */
+function collectEntityOrdinals(blocks: Array<PmNode>): Map<PmNode, number> {
+    const ordinals = new Map<PmNode, number>();
+    let counter = 0;
+
+    const visitInline = (block: PmNode) => {
+        let openLink: {[key: string]: any} | null = null;
+
+        block.forEach((child) => {
+            const linkMark = getLinkMark(child.marks);
+
+            if (linkMark == null) {
+                openLink = null;
+            } else {
+                const attrs = linkHtmlAttrs(linkMark);
+
+                if (openLink == null || !attrsEqual(openLink, attrs)) {
+                    counter++;
+                    openLink = attrs;
+                }
+            }
+        });
+    };
+
+    const visitBlocks = (nodes: Array<PmNode>) => {
+        for (const node of nodes) {
+            switch (node.type.name) {
+                case 'paragraph':
+                case 'heading':
+                case 'blockquote':
+                case 'codeBlock':
+                    visitInline(node);
+                    break;
+                case 'bulletList':
+                case 'orderedList':
+                case 'listItem':
+                    visitBlocks(childrenOf(node));
+                    break;
+                case 'media':
+                case 'embed':
+                case 'articleEmbed':
+                case 'table':
+                case 'multiLineQuote':
+                case 'customBlock':
+                    // cell content is a separate Draft.js content state
+                    // with its own numbering, so it is not visited
+                    ordinals.set(node, counter);
+                    counter++;
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    visitBlocks(blocks);
+
+    return ordinals;
+}
+
 function serializeBlock(node: PmNode, ctx: ISerializeContext): string {
     switch (node.type.name) {
         case 'paragraph':
@@ -155,7 +232,7 @@ function serializeBlock(node: PmNode, ctx: ISerializeContext): string {
         case 'orderedList':
             return serializeList(node, 0, ctx);
         case 'media':
-            return renderMedia(node) + '\n';
+            return renderMedia(node, ctx) + '\n';
         case 'embed':
             return renderEmbed(node) + '\n';
         case 'articleEmbed':
@@ -343,8 +420,9 @@ function renderStylePiece(piece: IStylePiece, ctx: ISerializeContext): string {
 
 // --- atomic blocks (ports of editor3's AtomicBlockParser) ---
 
-function renderMedia(node: PmNode): string {
-    const {media, rawKey} = node.attrs;
+function renderMedia(node: PmNode, ctx: ISerializeContext): string {
+    const {media} = node.attrs;
+    const rawKey = node.attrs.rawKey ?? ctx.entityOrdinals?.get(node) ?? 0;
     const rendition = media.renditions.original || media.renditions.viewImage;
     const href = rendition.href;
     const alt = media.alt_text || '';
@@ -367,8 +445,6 @@ function renderMedia(node: PmNode): string {
             content = `<img src="${href}" alt="${alt}" />`;
     }
 
-    // TODO(tiptap phase 2): generate keys for media added in the Tiptap editor;
-    // converted content always carries the original Draft.js entity key.
     const id = `${type} {id: "editor_${rawKey}"}`;
 
     if (desc) {

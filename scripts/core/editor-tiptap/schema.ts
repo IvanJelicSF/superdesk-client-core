@@ -191,14 +191,26 @@ export const editorTiptapSchema = new Schema({
                 attachment: {default: null},
             },
             inclusive: false,
-            parseDOM: [{
-                tag: 'a',
-                getAttrs: (dom: HTMLElement) => ({
-                    href: dom.getAttribute('href'),
-                    target: dom.getAttribute('target'),
-                    attachment: dom.getAttribute('data-attachment'),
-                }),
-            }],
+            // anchors that are neither links nor attachments are not imported
+            // (matching Draft.js's convertFromHTML, which required a href)
+            parseDOM: [
+                {
+                    tag: 'a[href]',
+                    getAttrs: (dom: HTMLElement) => ({
+                        href: dom.getAttribute('href'),
+                        target: dom.getAttribute('target'),
+                        attachment: dom.getAttribute('data-attachment'),
+                    }),
+                },
+                {
+                    tag: 'a[data-attachment]',
+                    getAttrs: (dom: HTMLElement) => ({
+                        href: dom.getAttribute('href'),
+                        target: dom.getAttribute('target'),
+                        attachment: dom.getAttribute('data-attachment'),
+                    }),
+                },
+            ],
             toDOM: (mark) => ['a', {
                 href: mark.attrs.href ?? undefined,
                 target: mark.attrs.target ?? undefined,
@@ -206,7 +218,11 @@ export const editorTiptapSchema = new Schema({
             }],
         },
         bold: {
-            parseDOM: [{tag: 'b'}, {tag: 'strong'}],
+            parseDOM: [
+                // Google Docs wraps its clipboard payload in <b style="font-weight:normal">
+                {tag: 'b', getAttrs: (dom: HTMLElement) => dom.style.fontWeight !== 'normal' && null},
+                {tag: 'strong'},
+            ],
             toDOM: () => ['b'],
         },
         italic: {
@@ -218,7 +234,7 @@ export const editorTiptapSchema = new Schema({
             toDOM: () => ['u'],
         },
         strike: {
-            parseDOM: [{tag: 's'}, {tag: 'del'}],
+            parseDOM: [{tag: 's'}, {tag: 'del'}, {tag: 'strike'}],
             toDOM: () => ['s'],
         },
         subscript: {
@@ -255,6 +271,10 @@ export const editorTiptapSchema = new Schema({
         customTag: {
             attrs: {tagId: {}},
             excludes: '',
+            parseDOM: [{
+                tag: 'span[custom-editor-tag-id]',
+                getAttrs: (dom: HTMLElement) => ({tagId: dom.getAttribute('custom-editor-tag-id')}),
+            }],
             toDOM: (mark) => ['span', {'custom-editor-tag-id': mark.attrs.tagId}],
         },
     },

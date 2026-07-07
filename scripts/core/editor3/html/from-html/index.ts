@@ -61,7 +61,7 @@ let cachedFingerprints: Array<IStyleFingerprint> | null = null;
  * Each fingerprint contains all CSS properties of that style, with both the raw value
  * and the browser-computed value (to handle CSS variable resolution differences).
  */
-function getStyleFingerprints(): Array<IStyleFingerprint> {
+export function getStyleFingerprints(): Array<IStyleFingerprint> {
     if (cachedFingerprints != null) {
         return cachedFingerprints;
     }
