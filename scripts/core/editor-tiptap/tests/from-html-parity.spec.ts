@@ -275,6 +275,18 @@ describe('editor-tiptap from-html', () => {
         expect(pmDocToHtml(htmlToPmDoc(html))).toBe(html);
     });
 
+    it('preserves pasted whitespace inside blocks (fork patch)', () => {
+        // the @sourcefabric/draft-js fork commented out _trimCurrentText for
+        // pasted block content ("Don't trim text when converting html")
+        expectRoundTripParity('<p>  spaced  text  </p>');
+    });
+
+    it('keeps a leading line feed as a space (fork MSWord paste patch)', () => {
+        // the fork removed upstream's REGEX_LEADING_LF strip, so a text
+        // node's leading '\n' becomes a space instead of disappearing
+        expectRoundTripParity('<p><b>bold</b>\nafter</p>');
+    });
+
     it('round-trips editor3-generated body_html', () => {
         // output of editor3StateToHtml for typical article content
         expectRoundTripParity(
