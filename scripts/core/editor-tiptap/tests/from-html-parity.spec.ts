@@ -275,6 +275,14 @@ describe('editor-tiptap from-html', () => {
         expect(pmDocToHtml(htmlToPmDoc(html))).toBe(html);
     });
 
+    it('imports style-attribute formatting like Draft.js styleFromNodeAttributes', () => {
+        expectRoundTripParity(
+            '<p><span style="font-weight:700">bold</span> <span style="font-style:italic">italic</span> '
+            + '<span style="text-decoration:underline">underlined</span> '
+            + '<span style="text-decoration:line-through">struck</span></p>',
+        );
+    });
+
     it('preserves pasted whitespace inside blocks (fork patch)', () => {
         // the @sourcefabric/draft-js fork commented out _trimCurrentText for
         // pasted block content ("Don't trim text when converting html")

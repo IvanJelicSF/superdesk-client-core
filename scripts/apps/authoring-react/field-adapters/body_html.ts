@@ -59,6 +59,7 @@ export const body_html: IFieldAdapter<IArticle> = {
         if (tiptapEnabled()) {
             const tiptapConfig: ITiptapFieldConfig = {
                 singleLine: false,
+                maxLength: fieldSchema?.maxlength,
             };
 
             const tiptapFieldV2: IAuthoringFieldV2 = {

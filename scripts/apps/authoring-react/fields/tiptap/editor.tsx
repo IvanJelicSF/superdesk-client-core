@@ -1,7 +1,10 @@
 import * as React from 'react';
 import {IEditorComponentProps} from 'superdesk-api';
 import {EditorContent} from '@tiptap/react';
+import {pmDocToPlainText} from 'core/editor-tiptap';
+import {TextStatistics} from 'apps/authoring/authoring/components/text-statistics';
 import {ITiptapValueOperational, ITiptapFieldConfig} from './index';
+import {Toolbar} from './toolbar';
 
 type IProps = IEditorComponentProps<ITiptapValueOperational, ITiptapFieldConfig, never>;
 
@@ -44,10 +47,23 @@ export class Editor extends React.PureComponent<IProps> {
 
     render() {
         const Container = this.props.container;
+        const {editor} = this.props.value;
+
+        const miniToolbar = (
+            <TextStatistics
+                text={pmDocToPlainText(editor.state.doc)}
+                language={this.props.language}
+                limit={this.props.config.maxLength}
+            />
+        );
 
         return (
-            <Container>
-                <EditorContent editor={this.props.value.editor as any} />
+            <Container miniToolbar={miniToolbar}>
+                {!this.props.readOnly && (
+                    <Toolbar editor={editor} />
+                )}
+
+                <EditorContent editor={editor as any} />
             </Container>
         );
     }

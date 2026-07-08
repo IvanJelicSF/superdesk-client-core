@@ -217,24 +217,51 @@ export const editorTiptapSchema = new Schema({
                 'data-attachment': mark.attrs.attachment ?? undefined,
             }],
         },
+        // the style-attribute rules below mirror Draft.js's
+        // `styleFromNodeAttributes` (its `boldValues`/`notBoldValues` and
+        // text-decoration handling), so pasted styled spans import the same
         bold: {
             parseDOM: [
                 // Google Docs wraps its clipboard payload in <b style="font-weight:normal">
                 {tag: 'b', getAttrs: (dom: HTMLElement) => dom.style.fontWeight !== 'normal' && null},
                 {tag: 'strong'},
+                {
+                    style: 'font-weight',
+                    getAttrs: (value: string) =>
+                        (['bold', 'bolder', '500', '600', '700', '800', '900'].includes(value) ? null : false),
+                },
+                ...['light', 'lighter', 'normal', '100', '200', '300', '400'].map((value) => ({
+                    style: `font-weight=${value}`,
+                    clearMark: (mark) => mark.type.name === 'bold',
+                })),
             ],
             toDOM: () => ['b'],
         },
         italic: {
-            parseDOM: [{tag: 'i'}, {tag: 'em'}],
+            parseDOM: [
+                {tag: 'i'},
+                {tag: 'em'},
+                {style: 'font-style=italic'},
+                {style: 'font-style=normal', clearMark: (mark) => mark.type.name === 'italic'},
+            ],
             toDOM: () => ['i'],
         },
         underline: {
-            parseDOM: [{tag: 'u'}],
+            parseDOM: [
+                {tag: 'u'},
+                {style: 'text-decoration=underline'},
+                {style: 'text-decoration=none', clearMark: (mark) => mark.type.name === 'underline'},
+            ],
             toDOM: () => ['u'],
         },
         strike: {
-            parseDOM: [{tag: 's'}, {tag: 'del'}, {tag: 'strike'}],
+            parseDOM: [
+                {tag: 's'},
+                {tag: 'del'},
+                {tag: 'strike'},
+                {style: 'text-decoration=line-through'},
+                {style: 'text-decoration=none', clearMark: (mark) => mark.type.name === 'strike'},
+            ],
             toDOM: () => ['s'],
         },
         subscript: {

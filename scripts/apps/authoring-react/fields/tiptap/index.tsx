@@ -3,6 +3,7 @@ import {Editor as TiptapEditor} from '@tiptap/core';
 import {gettext} from 'core/utils';
 import {convertDraftToPmDoc} from 'core/editor-tiptap';
 import {getEditorTiptapExtensions} from 'core/editor-tiptap/extensions';
+import {editingBehavior} from 'core/editor-tiptap/editing';
 import {Editor} from './editor';
 import {Preview} from './preview';
 
@@ -29,13 +30,16 @@ export interface ITiptapValueStorage {
 export interface ITiptapFieldConfig extends ICommonFieldConfig {
     // when set, the stored string value is plain text instead of HTML
     singleLine?: boolean;
+
+    // used for displaying character statistics
+    maxLength?: number;
 }
 
 export const TIPTAP_FIELD_TYPE = 'editor-tiptap';
 
 function createOperationalValue(docJson: {[key: string]: any} | null): ITiptapValueOperational {
     const editor = new TiptapEditor({
-        extensions: getEditorTiptapExtensions(),
+        extensions: [...getEditorTiptapExtensions(), editingBehavior],
         content: docJson ?? {type: 'doc', content: [{type: 'paragraph'}]},
     });
 
