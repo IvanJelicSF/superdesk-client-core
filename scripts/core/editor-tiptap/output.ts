@@ -79,6 +79,72 @@ export function pmDocToPlainText(doc: PmNode | {[key: string]: any}): string {
     return lines.join('\n');
 }
 
+export interface IPlainTextSegment {
+    // offset of the block's text within the `pmDocToPlainText` output
+    start: number;
+    length: number;
+    // ProseMirror position of the block's first character; within a block,
+    // plain-text characters and ProseMirror positions advance 1:1
+    // (hardBreak is one '\n' character and one position)
+    pmStart: number;
+}
+
+/**
+ * Maps `pmDocToPlainText` offsets to ProseMirror positions; used by
+ * utilities that work with plain text and global offsets, like the
+ * spellchecker (see `ISpellchecker['check']`) and find & replace.
+ */
+export function getPlainTextSegments(doc: PmNode | {[key: string]: any}): Array<IPlainTextSegment> {
+    const segments: Array<IPlainTextSegment> = [];
+    let textOffset = 0;
+    let firstLine = true;
+
+    const lineSeparator = () => {
+        if (firstLine) {
+            firstLine = false;
+        } else {
+            textOffset += 1; // the '\n' between lines
+        }
+    };
+
+    const visit = (node: PmNode, pos: number) => {
+        switch (node.type.name) {
+            case 'paragraph':
+            case 'heading':
+            case 'blockquote':
+            case 'codeBlock':
+                lineSeparator();
+                segments.push({start: textOffset, length: node.content.size, pmStart: pos + 1});
+                textOffset += node.content.size;
+                break;
+            case 'bulletList':
+            case 'orderedList':
+            case 'listItem':
+                node.forEach((child, offset) => {
+                    visit(child, pos + 1 + offset);
+                });
+                break;
+            case 'media':
+            case 'embed':
+            case 'articleEmbed':
+            case 'table':
+            case 'multiLineQuote':
+            case 'customBlock':
+                lineSeparator();
+                textOffset += 1; // atomic blocks contribute a single space
+                break;
+            default:
+                break;
+        }
+    };
+
+    toPmNode(doc).forEach((child, offset) => {
+        visit(child, offset);
+    });
+
+    return segments;
+}
+
 /**
  * The `msg` of an annotation is a serialized document: Draft.js raw format
  * on content converted from editor3, ProseMirror JSON once annotations are

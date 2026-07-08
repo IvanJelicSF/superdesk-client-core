@@ -15,6 +15,7 @@ import {
     runTableCommand,
     toggleTableHeader,
 } from 'core/editor-tiptap/commands';
+import {showUploadDialogAndInsert, insertEmbedFromInput} from './insertion';
 
 interface IButtonProps {
     icon: string;
@@ -91,6 +92,49 @@ class LinkModal extends React.PureComponent<ILinkModalProps, {href: string}> {
     }
 }
 
+interface IEmbedModalProps {
+    closeModal(): void;
+    onSubmit(input: string): void;
+}
+
+class EmbedModal extends React.PureComponent<IEmbedModalProps, {input: string}> {
+    constructor(props: IEmbedModalProps) {
+        super(props);
+
+        this.state = {input: ''};
+    }
+
+    render() {
+        const submit = () => {
+            if (this.state.input.trim().length > 0) {
+                this.props.onSubmit(this.state.input);
+            }
+
+            this.props.closeModal();
+        };
+
+        return (
+            <ModalSimple
+                title={gettext('Embed')}
+                closeModal={this.props.closeModal}
+                footerButtons={[
+                    {label: gettext('Cancel'), onClick: this.props.closeModal},
+                    {label: gettext('Embed'), onClick: submit, primary: true},
+                ]}
+            >
+                <Input
+                    type="text"
+                    label={gettext('URL or embed code')}
+                    value={this.state.input}
+                    onChange={(input) => {
+                        this.setState({input});
+                    }}
+                />
+            </ModalSimple>
+        );
+    }
+}
+
 interface IProps {
     editor: Editor;
 }
@@ -112,6 +156,19 @@ export class Toolbar extends React.PureComponent<IProps> {
 
     componentWillUnmount() {
         this.props.editor.off('transaction', this.handleTransaction);
+    }
+
+    private insertEmbed() {
+        const {editor} = this.props;
+
+        showModal(({closeModal}) => (
+            <EmbedModal
+                closeModal={closeModal}
+                onSubmit={(input) => {
+                    insertEmbedFromInput(editor, input);
+                }}
+            />
+        ));
     }
 
     private editLink() {
@@ -231,6 +288,20 @@ export class Toolbar extends React.PureComponent<IProps> {
                     }}
                 />
 
+                <ToolbarButton
+                    icon="icon-picture"
+                    label={gettext('Media')}
+                    onToggle={() => {
+                        showUploadDialogAndInsert(editor);
+                    }}
+                />
+                <ToolbarButton
+                    icon="icon-code"
+                    label={gettext('Embed')}
+                    onToggle={() => {
+                        this.insertEmbed();
+                    }}
+                />
                 <ToolbarButton
                     icon="icon-table"
                     label={gettext('Table')}
