@@ -17,6 +17,7 @@ import {
 } from 'core/editor-tiptap/commands';
 import {showUploadDialogAndInsert, insertEmbedFromInput} from './insertion';
 import {promptComment, promptAnnotation} from './highlights-ui';
+import {isSuggestingMode, toggleSuggestingMode} from 'core/editor-tiptap/suggestions';
 
 interface IButtonProps {
     icon: string;
@@ -289,6 +290,14 @@ export class Toolbar extends React.PureComponent<IProps> {
                     }}
                 />
 
+                <ToolbarButton
+                    icon="icon-suggestion"
+                    label={gettext('Toggle Suggestions Mode')}
+                    active={isSuggestingMode(editor)}
+                    onToggle={() => {
+                        toggleSuggestingMode(editor);
+                    }}
+                />
                 <ToolbarButton
                     icon="icon-comment"
                     label={gettext('Comment')}

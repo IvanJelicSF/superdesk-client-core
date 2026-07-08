@@ -34,7 +34,7 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
 
         editor.commands.setTextSelection({from: 6, to: 15});
 
-        const styleName = addHighlight(editor, 'COMMENT', {msg: 'a comment', author: 'admin'});
+        const styleName = addHighlight(editor, 'COMMENT', {data: {msg: 'a comment', author: 'admin'}});
 
         expect(styleName).toBe('COMMENT-1');
         expect(getCustomData(editor).lastHighlightIds.COMMENT).toBe(1);
@@ -49,21 +49,21 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
 
         // ids keep incrementing
         editor.commands.setTextSelection({from: 1, to: 5});
-        expect(addHighlight(editor, 'COMMENT', {msg: 'second'})).toBe('COMMENT-2');
+        expect(addHighlight(editor, 'COMMENT', {data: {msg: 'second'}})).toBe('COMMENT-2');
     });
 
     it('does not add a highlight without a selection', () => {
         editor = createEditor('text');
 
         editor.commands.setTextSelection(2);
-        expect(addHighlight(editor, 'COMMENT', {msg: 'x'})).toBe(null);
+        expect(addHighlight(editor, 'COMMENT', {data: {msg: 'x'}})).toBe(null);
     });
 
     it('adds annotations that appear in html output and annotations field', () => {
         editor = createEditor('annotated word here');
 
         editor.commands.setTextSelection({from: 11, to: 15});
-        addHighlight(editor, 'ANNOTATION', {
+        addHighlight(editor, 'ANNOTATION', {data: {
             msg: JSON.stringify({
                 blocks: [{
                     key: 'x1',
@@ -78,7 +78,7 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
             }),
             annotationType: 'regular',
             author: 'admin',
-        });
+        }});
 
         expect(pmDocToHtml(editor.getJSON()))
             .toBe('<p>annotated <span annotation-id="1">word</span> here</p>');
@@ -92,9 +92,9 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
         editor = createEditor('text to annotate');
 
         editor.commands.setTextSelection({from: 1, to: 5});
-        addHighlight(editor, 'ANNOTATION', {msg: 'old', annotationType: 'regular'});
+        addHighlight(editor, 'ANNOTATION', {data: {msg: 'old', annotationType: 'regular'}});
 
-        updateHighlightData(editor, 'ANNOTATION-1', {msg: 'new', annotationType: 'remark'});
+        updateHighlightData(editor, 'ANNOTATION-1', {data: {msg: 'new', annotationType: 'remark'}});
 
         expect(getHighlightData(editor, 'ANNOTATION-1').data).toEqual({msg: 'new', annotationType: 'remark'});
     });
@@ -103,10 +103,10 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
         editor = createEditor('overlapping highlights');
 
         editor.commands.setTextSelection({from: 1, to: 12});
-        addHighlight(editor, 'COMMENT', {msg: 'first'});
+        addHighlight(editor, 'COMMENT', {data: {msg: 'first'}});
 
         editor.commands.setTextSelection({from: 5, to: 23});
-        addHighlight(editor, 'COMMENT', {msg: 'second'});
+        addHighlight(editor, 'COMMENT', {data: {msg: 'second'}});
 
         removeHighlight(editor, 'COMMENT-1');
 
@@ -119,7 +119,7 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
         editor = createEditor('resolve this comment');
 
         editor.commands.setTextSelection({from: 9, to: 13});
-        addHighlight(editor, 'COMMENT', {msg: 'fix it', author: 'admin', replies: []});
+        addHighlight(editor, 'COMMENT', {data: {msg: 'fix it', author: 'admin', replies: []}});
 
         resolveComment(editor, 'COMMENT-1', {resolverUserId: 'user-1', date: '2026-07-08T00:00:00Z'});
 
@@ -142,7 +142,7 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
         editor = createEditor('find me');
 
         editor.commands.setTextSelection({from: 1, to: 8});
-        addHighlight(editor, 'COMMENT', {msg: 'x'});
+        addHighlight(editor, 'COMMENT', {data: {msg: 'x'}});
 
         expect(getHighlightsAt(editor.state, 3)).toEqual([{styleName: 'COMMENT-1', highlightKey: 'COMMENT'}]);
     });
@@ -151,10 +151,10 @@ describe('editor-tiptap highlights (comments and annotations)', () => {
         editor = createEditor('public comments');
 
         editor.commands.setTextSelection({from: 1, to: 7});
-        addHighlight(editor, 'COMMENT', {msg: 'visible to server', author: 'admin'});
+        addHighlight(editor, 'COMMENT', {data: {msg: 'visible to server', author: 'admin'}});
 
         editor.commands.setTextSelection({from: 8, to: 15});
-        addHighlight(editor, 'ANNOTATION', {msg: 'not a comment', annotationType: 'regular'});
+        addHighlight(editor, 'ANNOTATION', {data: {msg: 'not a comment', annotationType: 'regular'}});
 
         expect(getPublicApiComments(editor.getJSON()))
             .toEqual([{msg: 'visible to server', author: 'admin'}]);

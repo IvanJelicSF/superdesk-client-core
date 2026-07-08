@@ -313,6 +313,13 @@ export const editorTiptapSchema = new Schema({
                 const styleByKey = {
                     COMMENT: 'background-color: var(--sd-editor-colour__comment-bg);',
                     ANNOTATION: 'border-bottom: 4px solid var(--sd-editor-colour__adding);',
+                    ADD_SUGGESTION:
+                        'color: var(--sd-editor-colour__adding);'
+                        + ' background-color: var(--sd-editor-colour__adding-bg);',
+                    DELETE_SUGGESTION:
+                        'text-decoration: line-through;'
+                        + ' color: var(--sd-editor-colour__removing);'
+                        + ' background-color: var(--sd-editor-colour__removing-bg);',
                 };
 
                 return ['span', {

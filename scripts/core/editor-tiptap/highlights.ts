@@ -32,6 +32,10 @@ export function getHighlightData(editor: Editor, styleName: string): any {
  * Adds a highlight of the given config key (COMMENT, ANNOTATION, ...) to
  * the selection. Returns the generated style name, or null when there is
  * no selection to highlight.
+ *
+ * The stored entry is `{...data, type}` — editor3's exact shape
+ * (comments/annotations pass a `{data: {...}}` wrapper; suggestions store
+ * their fields flat), so converted and new highlights stay compatible.
  */
 export function addHighlight(
     editor: Editor,
@@ -44,13 +48,22 @@ export function addHighlight(
         return null;
     }
 
+    return addHighlightAtRange(editor, highlightKey, data, {from, to});
+}
+
+export function addHighlightAtRange(
+    editor: Editor,
+    highlightKey: string,
+    data: {[key: string]: any},
+    range: {from: number; to: number},
+): string {
     const customData = getCustomData(editor);
     const nextId = (customData.lastHighlightIds?.[highlightKey] ?? 0) + 1;
     const styleName = `${highlightKey}-${nextId}`;
 
     editor.commands.command(({state, tr, dispatch}) => {
         if (dispatch) {
-            tr.addMark(from, to, state.schema.marks.highlight.create({styleName, highlightKey}));
+            tr.addMark(range.from, range.to, state.schema.marks.highlight.create({styleName, highlightKey}));
             tr.setDocAttribute('customData', {
                 ...customData,
                 lastHighlightIds: {
@@ -59,7 +72,7 @@ export function addHighlight(
                 },
                 highlightsData: {
                     ...customData.highlightsData,
-                    [styleName]: {data, type: highlightKey},
+                    [styleName]: {...data, type: highlightKey},
                 },
             });
             dispatch(tr);
@@ -84,7 +97,7 @@ export function updateHighlightData(editor: Editor, styleName: string, data: {[k
                 ...customData,
                 highlightsData: {
                     ...customData.highlightsData,
-                    [styleName]: {...customData.highlightsData[styleName], data},
+                    [styleName]: {...customData.highlightsData[styleName], ...data},
                 },
             });
             dispatch(tr);

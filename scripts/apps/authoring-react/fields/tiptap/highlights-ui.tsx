@@ -18,6 +18,7 @@ import {
     getHighlightsAt,
     pmDocToPlainText,
 } from 'core/editor-tiptap';
+import {acceptSuggestion, rejectSuggestion} from 'core/editor-tiptap/suggestions';
 
 /**
  * Comment / annotation UI for the Tiptap field: creation modals and the
@@ -106,10 +107,12 @@ export function promptComment(editor: Editor): void {
             initialText=""
             onSubmit={(text) => {
                 addHighlight(editor, 'COMMENT', {
-                    msg: text,
-                    replies: [],
-                    resolutionInfo: null,
-                    ...getAuthorInfo(),
+                    data: {
+                        msg: text,
+                        replies: [],
+                        resolutionInfo: null,
+                        ...getAuthorInfo(),
+                    },
                 });
             }}
         />
@@ -131,15 +134,19 @@ export function promptAnnotation(editor: Editor, existingStyleName?: string): vo
             onSubmit={(text) => {
                 if (existingStyleName == null) {
                     addHighlight(editor, 'ANNOTATION', {
-                        msg: plainTextToMsg(text),
-                        annotationType: 'regular',
-                        ...getAuthorInfo(),
+                        data: {
+                            msg: plainTextToMsg(text),
+                            annotationType: 'regular',
+                            ...getAuthorInfo(),
+                        },
                     });
                 } else {
                     updateHighlightData(editor, existingStyleName, {
-                        ...existingData,
-                        msg: plainTextToMsg(text),
-                        date: new Date(),
+                        data: {
+                            ...existingData,
+                            msg: plainTextToMsg(text),
+                            date: new Date(),
+                        },
                     });
                 }
             }}
@@ -189,6 +196,50 @@ class HighlightsPopup extends React.PureComponent<IHighlightsPopupProps> {
                             }
 
                             const isComment = highlightKey === 'COMMENT';
+                            const isSuggestion = highlightKey === 'ADD_SUGGESTION'
+                                || highlightKey === 'DELETE_SUGGESTION';
+
+                            if (isSuggestion) {
+                                const resolverData = () => ({
+                                    author: ng.get('session').identity._id,
+                                    date: new Date(),
+                                });
+
+                                return (
+                                    <div key={styleName} style={{marginBottom: 8}}>
+                                        <div style={{fontSize: 12, opacity: 0.7}}>
+                                            {entry.author} · {
+                                                highlightKey === 'ADD_SUGGESTION'
+                                                    ? gettext('Suggested addition')
+                                                    : gettext('Suggested removal')
+                                            }
+                                        </div>
+
+                                        <div>
+                                            <button
+                                                className="btn btn--small"
+                                                onClick={() => {
+                                                    acceptSuggestion(editor, styleName, resolverData());
+                                                    onClose();
+                                                }}
+                                            >
+                                                {gettext('Accept')}
+                                            </button>
+
+                                            <button
+                                                className="btn btn--small"
+                                                onClick={() => {
+                                                    rejectSuggestion(editor, styleName, resolverData());
+                                                    onClose();
+                                                }}
+                                            >
+                                                {gettext('Reject')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
                             const message = isComment ? entry.data.msg : msgToPlainText(entry.data.msg);
 
                             return (

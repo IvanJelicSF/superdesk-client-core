@@ -5,6 +5,7 @@ import {tableBlockAndContent} from './utils';
 import {TableCell} from '../tables/TableCell';
 import {TableBlockComponent as TableBlock} from '../tables/TableBlock';
 import {IEditorStore} from 'core/editor3/store';
+import ng from 'core/services/ng';
 
 const spellchecking: IEditorStore['spellchecking'] = {
     enabled: false,
@@ -17,8 +18,12 @@ describe('editor3.component.table-block', () => {
     beforeEach(() => {
         window.module('superdesk.apps.spellcheck');
 
-        // init the tests module to get the actual provider
-        inject(() => { /* no-op */ });
+        // register this test's injector so `ng.get('spellcheck')` works
+        // regardless of suite order (editor3.spec replaces `ng` with a
+        // throwing mock and doesn't restore it)
+        inject(($injector) => {
+            ng.register($injector);
+        });
     });
 
     it('should render 2 rows and 6 cells', () => {
