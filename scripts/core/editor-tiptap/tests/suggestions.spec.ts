@@ -13,8 +13,13 @@ import {
     createLinkSuggestion,
     createChangeLinkSuggestion,
     createRemoveLinkSuggestion,
+    createSplitParagraphSuggestion,
+    createMergeParagraphsSuggestion,
+    pasteAddSuggestion,
+    acceptAllSuggestions,
     acceptSuggestion,
     rejectSuggestion,
+    PARAGRAPH_SEPARATOR,
 } from '../suggestions';
 import {pmDocToHtml} from '../to-html';
 
@@ -388,6 +393,127 @@ describe('editor-tiptap suggestions', () => {
         rejectSuggestion(editor, 'CHANGE_LINK_SUGGESTION-1', {author: 'resolver_id', date});
 
         expect(pmDocToHtml(editor.getJSON())).toBe('<p><a href="https://old.com">linked</a></p>');
+    });
+
+    it('suggests a paragraph split with a marked separator character', () => {
+        editor = createEditor('firstsecond');
+
+        editor.commands.setTextSelection(6); // between 'first' and 'second'
+
+        const styleName = createSplitParagraphSuggestion(editor, author);
+
+        expect(styleName).toBe('SPLIT_PARAGRAPH_SUGGESTION-1');
+        expect(editor.state.doc.childCount).toBe(2);
+        expect(editor.state.doc.child(0).textContent).toBe(`first${PARAGRAPH_SEPARATOR}`);
+        expect(editor.state.doc.child(1).textContent).toBe('second');
+
+        acceptSuggestion(editor, 'SPLIT_PARAGRAPH_SUGGESTION-1', {author: 'resolver_id', date});
+
+        expect(pmDocToHtml(editor.getJSON())).toBe('<p>first</p>\n<p>second</p>');
+        expect(getHighlightData(editor, 'SPLIT_PARAGRAPH_SUGGESTION-1')).toBeUndefined();
+    });
+
+    it('rejecting a split suggestion restores the single paragraph', () => {
+        editor = createEditor('firstsecond');
+
+        editor.commands.setTextSelection(6);
+        createSplitParagraphSuggestion(editor, author);
+
+        rejectSuggestion(editor, 'SPLIT_PARAGRAPH_SUGGESTION-1', {author: 'resolver_id', date});
+
+        expect(pmDocToHtml(editor.getJSON())).toBe('<p>firstsecond</p>');
+    });
+
+    it('suggests a paragraph merge on backspace at block start', () => {
+        editor = new Editor({
+            extensions: [...getEditorTiptapExtensions(), editingBehavior],
+            content: {type: 'doc', content: [
+                {type: 'paragraph', content: [{type: 'text', text: 'first'}]},
+                {type: 'paragraph', content: [{type: 'text', text: 'second'}]},
+            ]},
+        });
+
+        editor.commands.setTextSelection(8); // start of 'second'
+        createDeleteSuggestion(editor, 'backspace', author);
+
+        expect(editor.state.doc.childCount).toBe(1);
+        expect(editor.state.doc.child(0).textContent).toBe(`first${PARAGRAPH_SEPARATOR}second`);
+        expect(getHighlightedText(editor, 'MERGE_PARAGRAPHS_SUGGESTION-1')).toBe(PARAGRAPH_SEPARATOR);
+
+        rejectSuggestion(editor, 'MERGE_PARAGRAPHS_SUGGESTION-1', {author: 'resolver_id', date});
+
+        expect(pmDocToHtml(editor.getJSON())).toBe('<p>first</p>\n<p>second</p>');
+    });
+
+    it('accepting a merge suggestion keeps the blocks merged', () => {
+        editor = new Editor({
+            extensions: [...getEditorTiptapExtensions(), editingBehavior],
+            content: {type: 'doc', content: [
+                {type: 'paragraph', content: [{type: 'text', text: 'first'}]},
+                {type: 'paragraph', content: [{type: 'text', text: 'second'}]},
+            ]},
+        });
+
+        editor.commands.setTextSelection(8);
+        createMergeParagraphsSuggestion(editor, author);
+
+        acceptSuggestion(editor, 'MERGE_PARAGRAPHS_SUGGESTION-1', {author: 'resolver_id', date});
+
+        expect(pmDocToHtml(editor.getJSON())).toBe('<p>firstsecond</p>');
+    });
+
+    it('backspacing a same-author split suggestion cancels it', () => {
+        editor = createEditor('firstsecond');
+
+        editor.commands.setTextSelection(6);
+        createSplitParagraphSuggestion(editor, author);
+        expect(editor.state.doc.childCount).toBe(2);
+
+        // cursor sits at the start of the second block; backspace
+        editor.commands.setTextSelection(9);
+        createDeleteSuggestion(editor, 'backspace', author);
+
+        expect(pmDocToHtml(editor.getJSON())).toBe('<p>firstsecond</p>');
+        expect(getHighlightData(editor, 'SPLIT_PARAGRAPH_SUGGESTION-1')).toBeUndefined();
+        expect(getHighlightData(editor, 'MERGE_PARAGRAPHS_SUGGESTION-1')).toBeUndefined();
+    });
+
+    it('pastes content as a single ADD suggestion', () => {
+        editor = createEditor('before after');
+
+        editor.commands.setTextSelection(8);
+
+        const styleName = pasteAddSuggestion(editor, (targetEditor) => {
+            targetEditor.commands.insertContentAt(targetEditor.state.selection.from, [
+                {type: 'text', text: 'pasted '},
+            ]);
+        }, author);
+
+        expect(styleName).toBe('ADD_SUGGESTION-1');
+        expect(editor.state.doc.textContent).toBe('before pasted after');
+        expect(getHighlightedText(editor, 'ADD_SUGGESTION-1')).toBe('pasted ');
+
+        rejectSuggestion(editor, 'ADD_SUGGESTION-1', {author: 'resolver_id', date});
+
+        expect(editor.state.doc.textContent).toBe('before after');
+    });
+
+    it('accepts all suggestions at once', () => {
+        editor = createEditor('some text here');
+
+        editor.commands.setTextSelection(5);
+        createAddSuggestion(editor, ' new', author);
+
+        // 'some new text here' — select 'here'
+        editor.commands.setTextSelection({from: 15, to: 19});
+        createDeleteSuggestion(editor, 'delete', author);
+
+        acceptAllSuggestions(editor, {author: 'resolver_id', date});
+
+        expect(editor.state.doc.textContent).toBe('some new text ');
+        expect(getCustomData(editor).resolvedSuggestionsHistory.length).toBe(2);
+        expect(getHighlightData(editor, 'ADD_SUGGESTION-1')).toBeUndefined();
+        expect(getHighlightData(editor, 'DELETE_SUGGESTION-1')).toBeUndefined();
     });
 
     it('exports unresolved suggestions identically to editor3', () => {

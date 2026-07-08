@@ -36,6 +36,11 @@ export interface ISuggestionData {
 }
 
 const CHANGE_SUGGESTION_KEYS = ['ADD_SUGGESTION', 'DELETE_SUGGESTION'];
+const PARAGRAPH_SUGGESTION_KEYS = ['SPLIT_PARAGRAPH_SUGGESTION', 'MERGE_PARAGRAPHS_SUGGESTION'];
+
+// the marked character editor3 used to represent a suggested paragraph
+// split or merge (`Highlights.paragraphSeparator`)
+export const PARAGRAPH_SEPARATOR = '\u00B6';
 
 // draft-js inline style names, stored in `originalStyle` for editor3 compat
 export const DRAFT_STYLE_BY_MARK = {
@@ -216,6 +221,25 @@ export function createDeleteSuggestion(
     let {from, to} = editor.state.selection;
 
     if (from === to) {
+        const {$from} = editor.state.selection;
+
+        // at a block edge, deleting means merging blocks — editor3's
+        // setMergeParagraphSuggestion
+        if (action === 'backspace' && $from.parentOffset === 0) {
+            createMergeParagraphsSuggestion(editor, data);
+            return;
+        }
+
+        if (action === 'delete' && $from.parentOffset === $from.parent.content.size) {
+            const after = editor.state.doc.resolve($from.after());
+
+            if (after.nodeAfter?.isTextblock) {
+                editor.commands.setTextSelection(after.pos + 2);
+                createMergeParagraphsSuggestion(editor, data);
+            }
+            return;
+        }
+
         if (action === 'backspace') {
             from = from - 1;
         } else {
@@ -236,7 +260,7 @@ export function createDeleteSuggestion(
         const charNode = resolved.nodeAfter;
 
         if (charNode == null || !charNode.isText) {
-            continue; // block boundary or atomic node; paragraph merge suggestions are not implemented yet
+            continue; // block boundary within a range, or an atomic node
         }
 
         const suggestionMark = charNode.marks.find(
@@ -554,6 +578,220 @@ export function createChangeLinkSuggestion(
     );
 }
 
+/**
+ * A same-author paragraph-suggestion separator character directly before
+ * or after `pos`, if any.
+ */
+function getAdjacentParagraphSeparator(
+    editor: Editor,
+    pos: number,
+    highlightKey: string,
+    author: string,
+): {from: number; to: number; styleName: string} | null {
+    for (const side of ['before', 'after'] as const) {
+        const mark = getSuggestionMarkAt(editor, pos, side, [highlightKey]);
+
+        if (mark != null && getHighlightData(editor, mark.attrs.styleName)?.author === author) {
+            const from = side === 'before' ? pos - 1 : pos;
+
+            return {from, to: from + 1, styleName: mark.attrs.styleName};
+        }
+    }
+
+    return null;
+}
+
+function removeSeparatorChar(editor: Editor, separator: {from: number; to: number; styleName: string}): void {
+    editor.commands.command(({tr, dispatch}) => {
+        if (dispatch) {
+            tr.delete(separator.from, separator.to);
+            dispatch(tr);
+        }
+
+        return true;
+    });
+
+    if (getHighlightedTextLength(editor, separator.styleName) < 1) {
+        removeHighlight(editor, separator.styleName);
+    }
+}
+
+/**
+ * Splits the paragraph as a suggestion (editor3's
+ * CREATE_SPLIT_PARAGRAPH_SUGGESTION): the block splits for real and a
+ * marked paragraph-separator character records the suggestion at the end
+ * of the first block. Splitting right where the same author suggested a
+ * merge cancels the merge instead.
+ */
+export function createSplitParagraphSuggestion(editor: Editor, data: ISuggestionData): string | null {
+    const pos = editor.state.selection.from;
+    const cancellingMerge = getAdjacentParagraphSeparator(
+        editor, pos, 'MERGE_PARAGRAPHS_SUGGESTION', data.author,
+    );
+
+    editor.commands.command(({tr, dispatch}) => {
+        if (dispatch) {
+            tr.split(pos);
+            dispatch(tr);
+        }
+
+        return true;
+    });
+
+    if (cancellingMerge != null) {
+        // the split restores what the merge suggestion would have undone
+        const mapped = cancellingMerge.from >= pos ? cancellingMerge.from + 2 : cancellingMerge.from;
+
+        removeSeparatorChar(editor, {...cancellingMerge, from: mapped, to: mapped + 1});
+
+        return null;
+    }
+
+    // after the split, the first block's content still ends at `pos`
+    const separatorPos = pos;
+
+    editor.commands.command(({tr, dispatch}) => {
+        if (dispatch) {
+            tr.insertText(PARAGRAPH_SEPARATOR, separatorPos);
+            dispatch(tr);
+        }
+
+        return true;
+    });
+
+    stripSuggestionMarks(editor, {from: separatorPos, to: separatorPos + 1});
+    editor.commands.setTextSelection(separatorPos + 3);
+
+    return addHighlightAtRange(
+        editor,
+        'SPLIT_PARAGRAPH_SUGGESTION',
+        data,
+        {from: separatorPos, to: separatorPos + 1},
+    );
+}
+
+/**
+ * Merges the block with the previous one as a suggestion (editor3's
+ * setMergeParagraphSuggestion, reached by deleting at a block edge): the
+ * blocks join for real and a marked separator character records where
+ * the boundary was. Deleting a same-author split suggestion's separator
+ * cancels the split instead.
+ */
+export function createMergeParagraphsSuggestion(editor: Editor, data: ISuggestionData): string | null {
+    const {$from} = editor.state.selection;
+
+    if ($from.parentOffset !== 0 || $from.index(-1) === 0) {
+        return null;
+    }
+
+    const boundary = $from.before();
+    const cancellingSplit = getAdjacentParagraphSeparator(
+        editor, boundary - 1, 'SPLIT_PARAGRAPH_SUGGESTION', data.author,
+    );
+
+    if (cancellingSplit != null) {
+        // deleting the suggested split restores the original single block
+        editor.commands.command(({tr, dispatch}) => {
+            if (dispatch) {
+                tr.join(boundary);
+                dispatch(tr);
+            }
+
+            return true;
+        });
+        removeSeparatorChar(editor, {...cancellingSplit, to: cancellingSplit.from + 1});
+
+        return null;
+    }
+
+    editor.commands.command(({tr, dispatch}) => {
+        if (dispatch) {
+            tr.join(boundary);
+            dispatch(tr);
+        }
+
+        return true;
+    });
+
+    const separatorPos = boundary - 1;
+
+    editor.commands.command(({tr, dispatch}) => {
+        if (dispatch) {
+            tr.insertText(PARAGRAPH_SEPARATOR, separatorPos);
+            dispatch(tr);
+        }
+
+        return true;
+    });
+
+    stripSuggestionMarks(editor, {from: separatorPos, to: separatorPos + 1});
+    editor.commands.setTextSelection(separatorPos);
+
+    return addHighlightAtRange(
+        editor,
+        'MERGE_PARAGRAPHS_SUGGESTION',
+        data,
+        {from: separatorPos, to: separatorPos + 1},
+    );
+}
+
+/**
+ * Pastes content as an ADD suggestion (editor3's PASTE_ADD_SUGGESTION):
+ * the content is inserted with formatting and every inserted character
+ * belongs to the suggestion.
+ */
+export function pasteAddSuggestion(
+    editor: Editor,
+    insertContent: (editor: Editor) => void,
+    data: ISuggestionData,
+): string | null {
+    if (!editor.state.selection.empty) {
+        createDeleteSuggestion(editor, 'delete', data);
+    }
+
+    const from = editor.state.selection.from;
+
+    insertContent(editor);
+
+    const to = editor.state.selection.from;
+
+    if (to <= from) {
+        return null;
+    }
+
+    stripSuggestionMarks(editor, {from, to});
+
+    return markRangeAsSuggestion(editor, {from, to}, 'ADD_SUGGESTION', data);
+}
+
+/**
+ * Every unresolved suggestion in the document, newest first.
+ */
+export function getAllSuggestions(editor: Editor): Array<string> {
+    const highlightsData = getCustomData(editor).highlightsData ?? {};
+    const suggestionKeys = [
+        ...CHANGE_SUGGESTION_KEYS,
+        ...PARAGRAPH_SUGGESTION_KEYS,
+        ...Object.keys(MARK_BY_STYLE_SUGGESTION_KEY),
+        'BLOCK_STYLE_SUGGESTION', 'ADD_LINK_SUGGESTION', 'REMOVE_LINK_SUGGESTION', 'CHANGE_LINK_SUGGESTION',
+    ];
+
+    return Object.keys(highlightsData)
+        .filter((styleName) => suggestionKeys.some((key) => styleName.indexOf(`${key}-`) === 0));
+}
+
+export function acceptAllSuggestions(editor: Editor, resolverData: ISuggestionData): void {
+    getAllSuggestions(editor).forEach((styleName) => {
+        acceptSuggestion(editor, styleName, resolverData);
+    });
+}
+
+export function rejectAllSuggestions(editor: Editor, resolverData: ISuggestionData): void {
+    getAllSuggestions(editor).forEach((styleName) => {
+        rejectSuggestion(editor, styleName, resolverData);
+    });
+}
+
 // --- resolving suggestions ---
 
 function findSuggestionRanges(editor: Editor, styleName: string): Array<{from: number; to: number; mark: Mark}> {
@@ -574,6 +812,59 @@ function findSuggestionRanges(editor: Editor, styleName: string): Array<{from: n
     });
 
     return ranges;
+}
+
+/**
+ * Per-range resolution effects for suggestion types that keep their text:
+ * paragraph separators are removed (rejecting also restores the block
+ * structure), style/link suggestions restore the original on reject.
+ */
+function applyResolutionToRange(tr, state, range: {from: number; to: number; mark: Mark}, entry, accepted: boolean) {
+    if (PARAGRAPH_SUGGESTION_KEYS.includes(entry.type)) {
+        tr.delete(range.from, range.to);
+
+        if (!accepted && entry.type === 'SPLIT_PARAGRAPH_SUGGESTION') {
+            tr.join(range.from + 1);
+        }
+
+        if (!accepted && entry.type === 'MERGE_PARAGRAPHS_SUGGESTION') {
+            tr.split(range.from);
+        }
+
+        return;
+    }
+
+    tr.removeMark(range.from, range.to, range.mark);
+
+    const styleMarkName = MARK_BY_STYLE_SUGGESTION_KEY[entry.type];
+
+    if (styleMarkName != null && !accepted) {
+        // rejecting a style suggestion restores the original: the
+        // suggestion either added the style (originalStyle empty; remove
+        // it) or removed it (re-apply it)
+        if (entry.originalStyle === '') {
+            tr.removeMark(range.from, range.to, state.schema.marks[styleMarkName]);
+        } else {
+            tr.addMark(range.from, range.to, state.schema.marks[styleMarkName].create());
+        }
+    }
+
+    const hasLink = state.doc.rangeHasMark(range.from, range.to, state.schema.marks.link);
+    const removeLink = (entry.type === 'ADD_LINK_SUGGESTION' && !accepted)
+        || (entry.type === 'REMOVE_LINK_SUGGESTION' && accepted);
+
+    if (removeLink && hasLink) {
+        tr.removeMark(range.from, range.to, state.schema.marks.link);
+    }
+
+    if (entry.type === 'CHANGE_LINK_SUGGESTION' && !accepted) {
+        tr.removeMark(range.from, range.to, state.schema.marks.link);
+        tr.addMark(
+            range.from,
+            range.to,
+            state.schema.marks.link.create({href: entry.from?.href}),
+        );
+    }
 }
 
 function resolveSuggestion(
@@ -604,39 +895,8 @@ function resolveSuggestion(
             for (const range of [...ranges].reverse()) {
                 if (removeText) {
                     tr.delete(range.from, range.to);
-                    continue;
-                }
-
-                tr.removeMark(range.from, range.to, range.mark);
-
-                const styleMarkName = MARK_BY_STYLE_SUGGESTION_KEY[entry.type];
-
-                if (styleMarkName != null && !accepted) {
-                    // rejecting a style suggestion restores the original:
-                    // the suggestion either added the style (originalStyle
-                    // empty; remove it) or removed it (re-apply it)
-                    if (entry.originalStyle === '') {
-                        tr.removeMark(range.from, range.to, state.schema.marks[styleMarkName]);
-                    } else {
-                        tr.addMark(range.from, range.to, state.schema.marks[styleMarkName].create());
-                    }
-                }
-
-                const linkMark = state.doc.rangeHasMark(range.from, range.to, state.schema.marks.link);
-                const removeLink = (entry.type === 'ADD_LINK_SUGGESTION' && !accepted)
-                    || (entry.type === 'REMOVE_LINK_SUGGESTION' && accepted);
-
-                if (removeLink && linkMark) {
-                    tr.removeMark(range.from, range.to, state.schema.marks.link);
-                }
-
-                if (entry.type === 'CHANGE_LINK_SUGGESTION' && !accepted) {
-                    tr.removeMark(range.from, range.to, state.schema.marks.link);
-                    tr.addMark(
-                        range.from,
-                        range.to,
-                        state.schema.marks.link.create({href: entry.from?.href}),
-                    );
+                } else {
+                    applyResolutionToRange(tr, state, range, entry, accepted);
                 }
             }
 
@@ -699,6 +959,10 @@ export function rejectSuggestion(editor: Editor, styleName: string, resolverData
 
 export interface ISuggestionsExtensionOptions {
     getAuthorData(): ISuggestionData;
+
+    // used for rich paste in suggesting mode; when absent, pasted content
+    // degrades to plain text
+    insertHtml?(editor: Editor, html: string): void;
 }
 
 /**
@@ -724,6 +988,15 @@ export function createSuggestionsExtension(options: ISuggestionsExtensionOptions
             return {
                 Backspace: handleDeleteKey('backspace'),
                 Delete: handleDeleteKey('delete'),
+                Enter: () => {
+                    if (!isSuggestingMode(this.editor)) {
+                        return false;
+                    }
+
+                    createSplitParagraphSuggestion(this.editor, options.getAuthorData());
+
+                    return true;
+                },
             };
         },
 
@@ -755,13 +1028,23 @@ export function createSuggestionsExtension(options: ISuggestionsExtensionOptions
                                 return false;
                             }
 
+                            const html = event.clipboardData?.getData('text/html') ?? '';
                             const text = event.clipboardData?.getData('text/plain') ?? '';
 
-                            if (text.length > 0) {
+                            if (html !== '' && options.insertHtml != null) {
+                                // rich paste: content inserted with formatting,
+                                // all of it belonging to one ADD suggestion
+                                // (editor3's PASTE_ADD_SUGGESTION)
+                                pasteAddSuggestion(
+                                    editor,
+                                    (targetEditor) => options.insertHtml(targetEditor, html),
+                                    options.getAuthorData(),
+                                );
+                            } else if (text.length > 0) {
                                 createAddSuggestion(editor, text, options.getAuthorData());
                             }
 
-                            return true; // rich paste as suggestion is not implemented yet
+                            return true;
                         },
                     },
                 }),
