@@ -23,6 +23,8 @@ import {Switch} from 'superdesk-ui-framework/react/components/Switch';
 import {omitFields} from '../data-layer';
 import {assertNever, nameof} from 'core/helpers/typescript-helpers';
 import {EDITOR_3_FIELD_TYPE} from '../fields/editor3';
+import {TIPTAP_FIELD_TYPE, ITiptapValueOperational} from '../fields/tiptap';
+import {pmDocToHtml, htmlToPmDoc} from 'core/editor-tiptap';
 import {dispatchEditorEvent} from '../authoring-react-editor-events';
 import {InteractiveMacrosDisplay} from './interactive-macros-display';
 import {editorId} from '../article-widgets/find-and-replace';
@@ -115,8 +117,10 @@ export function overwriteArticle(
 
     Object.keys(patchCopy).forEach((fieldKey) => {
         const currentField = allFields.get(fieldKey);
+        const isRichTextField = currentField != null
+            && (currentField.fieldType === EDITOR_3_FIELD_TYPE || currentField.fieldType === TIPTAP_FIELD_TYPE);
 
-        if (currentField != null && currentField.fieldType === EDITOR_3_FIELD_TYPE) {
+        if (isRichTextField) {
             delete patchCopy.fields_meta[currentField.id];
         }
     });
@@ -145,6 +149,16 @@ function handleKeepStyleReplaceMacro(
 
                 article[field.id] = prepareHtmlForPatching(valueOperational.store.getState().editorState);
             });
+
+            const tiptapFields = contentProfile.header.merge(contentProfile.content)
+                .filter((value) => value.fieldType === TIPTAP_FIELD_TYPE);
+
+            tiptapFields.forEach((field) => {
+                const valueOperational = fieldsData.get(field.id) as ITiptapValueOperational;
+
+                article[field.id] = pmDocToHtml(valueOperational.editor.getJSON());
+            });
+
             return article;
         },
         afterPatch: (resArticle: IArticle) => {
@@ -162,6 +176,20 @@ function handleKeepStyleReplaceMacro(
                     editorState: editorStateNext,
                     html: patch[field.id],
                 });
+            });
+
+            const tiptapFields = contentProfile.header.merge(contentProfile.content)
+                .filter((value) => value.fieldType === TIPTAP_FIELD_TYPE && Object.keys(patch).includes(value.id));
+
+            tiptapFields.forEach((field) => {
+                // the patched html is re-imported; unlike editor3's
+                // style-preserving patch, unresolved highlight marks in
+                // this field don't survive a keep-style macro
+                const valueOperational = fieldsData.get(field.id) as ITiptapValueOperational;
+
+                valueOperational.editor.commands.setContent(
+                    htmlToPmDoc(patch[field.id], article.associations),
+                );
             });
         },
     };

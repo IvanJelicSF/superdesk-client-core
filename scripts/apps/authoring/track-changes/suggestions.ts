@@ -5,6 +5,10 @@ import {
 import * as Highlights from 'core/editor3/helpers/highlights';
 
 import {getLabelNameResolver} from 'apps/workspace/helpers/getLabelForFieldId';
+import {
+    getTiptapStateFromItem,
+    getResolvedSuggestionsFromTiptapState,
+} from 'core/editor-tiptap/article-access';
 import {fieldsMetaKeys, META_FIELD_NAME, getFieldMetadata, getFieldId} from '../../../core/editor3/helpers/fieldsMeta';
 import {get} from 'lodash';
 import {gettext} from 'core/utils';
@@ -46,20 +50,29 @@ SuggestionsCtrl.$inject = ['$scope', 'userList', 'content'];
 function SuggestionsCtrl($scope, userList, content) {
     getLabelNameResolver().then((getLabelForFieldId) => {
         const suggestions = Object.keys($scope.item[META_FIELD_NAME])
-            .map((contentKey) => ({
-                contentKey: contentKey,
-                [fieldsMetaKeys.draftjsState]: getFieldMetadata($scope.item, contentKey, fieldsMetaKeys.draftjsState),
-            }))
-            .filter((obj) => obj[fieldsMetaKeys.draftjsState] != null)
-            .map((obj) => (
-                {
-                    fieldName: getLabelForFieldId(getFieldId(obj.contentKey)),
-                    suggestions: getCustomDataFromEditorRawState(
-                        obj[fieldsMetaKeys.draftjsState],
-                        editor3DataKeys.RESOLVED_SUGGESTIONS_HISTORY,
-                    ) || [],
+            .map((contentKey) => {
+                const draftjsState = getFieldMetadata($scope.item, contentKey, fieldsMetaKeys.draftjsState);
+
+                if (draftjsState != null) {
+                    return {
+                        fieldName: getLabelForFieldId(getFieldId(contentKey)),
+                        suggestions: getCustomDataFromEditorRawState(
+                            draftjsState,
+                            editor3DataKeys.RESOLVED_SUGGESTIONS_HISTORY,
+                        ) || [],
+                    };
                 }
-            ))
+
+                // fields saved by the Tiptap editor; same entry shape
+                const tiptapState = getTiptapStateFromItem($scope.item, contentKey);
+
+                return {
+                    fieldName: getLabelForFieldId(getFieldId(contentKey)),
+                    suggestions: tiptapState == null
+                        ? []
+                        : getResolvedSuggestionsFromTiptapState(tiptapState),
+                };
+            })
             .filter((obj) => obj.suggestions.length > 0);
 
         if (suggestions.length === 0) {

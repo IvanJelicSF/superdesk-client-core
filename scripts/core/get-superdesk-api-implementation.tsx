@@ -84,6 +84,7 @@ import {WithLiveResources} from './with-resources';
 import {querySelectorParent} from './helpers/dom/querySelectorParent';
 import {showIgnoreCancelSaveDialog} from './ui/components/IgnoreCancelSaveDialog';
 import {Editor3Html} from './editor3/Editor3Html';
+import {EditorTiptapHtml} from './editor-tiptap/EditorTiptapHtml';
 import {
     arrayToTree,
     buildTreeDictionary,
@@ -476,6 +477,7 @@ export function getSuperdeskApiImplementation(
             getLiveQueryHOC: () => WithLiveQuery,
             WithLiveResources,
             Editor3Html,
+            EditorTiptapHtml,
             AuthoringWidgetHeading,
             AuthoringWidgetLayout,
             DateTime,

@@ -3437,6 +3437,13 @@ declare module 'superdesk-api' {
             SpacerInlineFlex: React.ComponentType<IPropsSpacerInlineFlex>;
             Center: React.ComponentType<{children?: React.ReactNode}>;
             Editor3Html: React.ComponentType<IEditor3HtmlProps>;
+
+            /**
+             * Tiptap-backed equivalent of Editor3Html (same html-in,
+             * html-out contract); experimental while the Tiptap editor
+             * is behind the feature flag.
+             */
+            EditorTiptapHtml: React.ComponentType<IEditor3HtmlProps>;
             AuthoringWidgetHeading: React.ComponentType<IPropsWidgetHeading>;
             AuthoringWidgetLayout: React.ComponentType<IAuthoringWidgetLayoutProps>;
             DateTime: React.ComponentType<IPropsDateTime>;

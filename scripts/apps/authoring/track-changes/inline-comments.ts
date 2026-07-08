@@ -16,6 +16,11 @@ import {getCustomMetadata} from 'core/editor3/helpers/editor3CustomData';
 import {getLabelNameResolver} from 'apps/workspace/helpers/getLabelForFieldId';
 import {get} from 'lodash';
 import {gettext} from 'core/utils';
+import {
+    getTiptapStateFromItem,
+    getResolvedCommentsFromTiptapState,
+    getUnresolvedCommentsFromTiptapState,
+} from 'core/editor-tiptap/article-access';
 
 function getAllUserIdsFromComments(comments) {
     const users = [];
@@ -71,8 +76,21 @@ function InlineCommentsCtrl($scope, userList, metadata, content) {
             }))
             .filter((obj) => obj[fieldsMetaKeys.draftjsState] != null);
 
+        // fields saved by the Tiptap editor store their state in
+        // `tiptapState`; the entries have the same shape
+        const tiptapEditors = Object.keys($scope.item[META_FIELD_NAME])
+            .map((contentKey) => ({
+                contentKey: contentKey,
+                tiptapState: getTiptapStateFromItem($scope.item, contentKey),
+            }))
+            .filter((obj) => obj.tiptapState != null);
+
         const resolvedComments = editors
             .map(getCommentsFromField(getLabelForFieldId))
+            .concat(tiptapEditors.map((obj) => ({
+                fieldName: getLabelForFieldId(getFieldId(obj.contentKey)),
+                comments: getResolvedCommentsFromTiptapState(obj.tiptapState),
+            })))
             .filter((obj) => obj.comments.length > 0);
 
         const unresolvedComments = Object.keys($scope.item[META_FIELD_NAME]).map((contentKey) => {
@@ -81,6 +99,16 @@ function InlineCommentsCtrl($scope, userList, metadata, content) {
                 contentKey,
                 fieldsMetaKeys.draftjsState,
             );
+
+            if (rawEditorState == null) {
+                const tiptapState = getTiptapStateFromItem($scope.item, contentKey);
+
+                return {
+                    fieldId: contentKey,
+                    fieldName: getLabelForFieldId(getFieldId(contentKey)),
+                    comments: tiptapState == null ? [] : getUnresolvedCommentsFromTiptapState(tiptapState),
+                };
+            }
 
             const comments = getCustomMetadata($scope.item, contentKey, getHighlightsConfig().COMMENT.type)
                 .map((highlight) => {
