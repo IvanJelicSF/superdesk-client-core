@@ -17,7 +17,16 @@ import {
 } from 'core/editor-tiptap/commands';
 import {showUploadDialogAndInsert, insertEmbedFromInput} from './insertion';
 import {promptComment, promptAnnotation} from './highlights-ui';
-import {isSuggestingMode, toggleSuggestingMode} from 'core/editor-tiptap/suggestions';
+import {
+    isSuggestingMode,
+    toggleSuggestingMode,
+    createChangeStyleSuggestion,
+    createBlockStyleSuggestion,
+    createLinkSuggestion,
+    createChangeLinkSuggestion,
+    createRemoveLinkSuggestion,
+} from 'core/editor-tiptap/suggestions';
+import {getSuggestionMetadata} from 'core/editor3/actions/suggestions';
 
 interface IButtonProps {
     icon: string;
@@ -182,6 +191,20 @@ export class Toolbar extends React.PureComponent<IProps> {
                 closeModal={closeModal}
                 initialHref={currentHref}
                 onSubmit={(href) => {
+                    if (isSuggestingMode(editor)) {
+                        const hasLink = currentHref !== '';
+
+                        if (href === '' && hasLink) {
+                            createRemoveLinkSuggestion(editor, getSuggestionMetadata());
+                        } else if (hasLink) {
+                            createChangeLinkSuggestion(editor, {href}, getSuggestionMetadata());
+                        } else if (href !== '') {
+                            createLinkSuggestion(editor, {href}, getSuggestionMetadata());
+                        }
+
+                        return;
+                    }
+
                     setLink(editor, {href});
                 }}
             />
@@ -191,10 +214,20 @@ export class Toolbar extends React.PureComponent<IProps> {
     render() {
         const {editor} = this.props;
         const toggleMark = (markName: string) => () => {
+            if (isSuggestingMode(editor)) {
+                createChangeStyleSuggestion(editor, markName, getSuggestionMetadata());
+                return;
+            }
+
             editor.chain().focus().toggleMark(markName)
                 .run();
         };
         const toggleHeading = (level: number) => () => {
+            if (isSuggestingMode(editor)) {
+                createBlockStyleSuggestion(editor, `H${level}`, getSuggestionMetadata());
+                return;
+            }
+
             editor.chain().focus().toggleNode('heading', 'paragraph', {level})
                 .run();
         };
@@ -259,6 +292,11 @@ export class Toolbar extends React.PureComponent<IProps> {
                     label={gettext('Quote')}
                     active={editor.isActive('blockquote')}
                     onToggle={() => {
+                        if (isSuggestingMode(editor)) {
+                            createBlockStyleSuggestion(editor, 'quote', getSuggestionMetadata());
+                            return;
+                        }
+
                         editor.chain().focus().toggleNode('blockquote', 'paragraph')
                             .run();
                     }}

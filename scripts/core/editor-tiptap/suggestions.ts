@@ -37,6 +37,34 @@ export interface ISuggestionData {
 
 const CHANGE_SUGGESTION_KEYS = ['ADD_SUGGESTION', 'DELETE_SUGGESTION'];
 
+// draft-js inline style names, stored in `originalStyle` for editor3 compat
+export const DRAFT_STYLE_BY_MARK = {
+    bold: 'BOLD',
+    italic: 'ITALIC',
+    underline: 'UNDERLINE',
+    strike: 'STRIKETHROUGH',
+    subscript: 'SUBSCRIPT',
+    superscript: 'SUPERSCRIPT',
+};
+
+export const STYLE_SUGGESTION_KEY_BY_MARK = {
+    bold: 'TOGGLE_BOLD_SUGGESTION',
+    italic: 'TOGGLE_ITALIC_SUGGESTION',
+    underline: 'TOGGLE_UNDERLINE_SUGGESTION',
+    strike: 'TOGGLE_STRIKETHROUGH_SUGGESTION',
+    subscript: 'TOGGLE_SUBSCRIPT_SUGGESTION',
+    superscript: 'TOGGLE_SUPERSCRIPT_SUGGESTION',
+};
+
+const MARK_BY_STYLE_SUGGESTION_KEY = Object.keys(STYLE_SUGGESTION_KEY_BY_MARK).reduce(
+    (result, markName) => {
+        result[STYLE_SUGGESTION_KEY_BY_MARK[markName]] = markName;
+
+        return result;
+    },
+    {},
+);
+
 // --- suggesting mode ---
 
 export const suggestingModePluginKey = new PluginKey<{enabled: boolean}>('suggestingMode');
@@ -275,6 +303,257 @@ function getHighlightedTextLength(editor: Editor, styleName: string): number {
     return length;
 }
 
+/**
+ * Toggles an inline style as a suggestion (editor3's
+ * CREATE_CHANGE_STYLE_SUGGESTION): the style is applied immediately and
+ * the range is marked with a TOGGLE_<STYLE>_SUGGESTION highlight whose
+ * `originalStyle` records what rejecting should restore. Toggling the
+ * style back (same author, same range) removes the suggestion instead.
+ */
+export function createChangeStyleSuggestion(editor: Editor, markName: string, data: ISuggestionData): string | null {
+    const highlightKey = STYLE_SUGGESTION_KEY_BY_MARK[markName];
+    const {from, to, empty} = editor.state.selection;
+
+    if (highlightKey == null || empty) {
+        return null;
+    }
+
+    const markType = editor.state.schema.marks[markName];
+    const wasActive = editor.state.doc.rangeHasMark(from, to, markType);
+    const originalStyle = wasActive ? DRAFT_STYLE_BY_MARK[markName] : '';
+    const existing = getUniformSuggestionMark(editor, {from, to}, highlightKey);
+
+    if (existing != null) {
+        const oldData = getHighlightData(editor, existing.attrs.styleName);
+        const draftStyle = DRAFT_STYLE_BY_MARK[markName];
+        const toggledBack = (oldData?.originalStyle === draftStyle && originalStyle === '')
+            || (oldData?.originalStyle === '' && originalStyle === draftStyle);
+
+        editor.commands.command(({tr, dispatch}) => {
+            if (dispatch) {
+                tr.removeMark(from, to, existing);
+                dispatch(tr);
+            }
+
+            return true;
+        });
+
+        if (toggledBack) {
+            editor.chain().setTextSelection({from, to}).toggleMark(markName)
+                .run();
+
+            if (getHighlightedTextLength(editor, existing.attrs.styleName) < 1) {
+                removeHighlight(editor, existing.attrs.styleName);
+            }
+
+            return null;
+        }
+
+        // the range switches to a new suggestion inheriting the older origin
+        const inherited = {...data, originalStyle: oldData?.originalStyle ?? ''};
+
+        editor.chain().setTextSelection({from, to}).toggleMark(markName)
+            .run();
+
+        return addHighlightAtRange(editor, highlightKey, inherited, {from, to});
+    }
+
+    editor.chain().setTextSelection({from, to}).toggleMark(markName)
+        .run();
+
+    return addHighlightAtRange(editor, highlightKey, {...data, originalStyle}, {from, to});
+}
+
+/**
+ * A same-key suggestion mark covering the entire range, if there is one.
+ */
+function getUniformSuggestionMark(
+    editor: Editor,
+    range: {from: number; to: number},
+    highlightKey: string,
+): Mark | null {
+    let found: Mark | null = null;
+    let uniform = true;
+
+    editor.state.doc.nodesBetween(range.from, range.to, (node) => {
+        if (node.isText) {
+            const mark = node.marks.find(
+                (nodeMark) => nodeMark.type.name === 'highlight'
+                    && nodeMark.attrs.highlightKey === highlightKey,
+            );
+
+            if (mark == null || (found != null && mark.attrs.styleName !== found.attrs.styleName)) {
+                uniform = false;
+            } else {
+                found = mark;
+            }
+        }
+
+        return true;
+    });
+
+    return uniform ? found : null;
+}
+
+/**
+ * Draft block-type strings editor3 stored in BLOCK_STYLE_SUGGESTION data,
+ * mapped to schema nodes.
+ */
+function getBlockNodeForDraftType(blockType: string): {name: string; attrs?: {[key: string]: any}} | null {
+    const headingMatch = blockType.match(/^H([1-6])$/);
+
+    if (headingMatch != null) {
+        return {name: 'heading', attrs: {level: Number(headingMatch[1])}};
+    }
+
+    return blockType === 'quote' ? {name: 'blockquote'} : null;
+}
+
+/**
+ * Changes block style as a suggestion (editor3's
+ * CREATE_CHANGE_BLOCK_STYLE_SUGGESTION): the type toggles immediately and
+ * the whole block text is marked. `blockType` uses editor3's strings
+ * ('H1'..'H6', 'quote') so converted documents resolve identically.
+ */
+export function createBlockStyleSuggestion(editor: Editor, blockType: string, data: ISuggestionData): string | null {
+    const target = getBlockNodeForDraftType(blockType);
+
+    if (target == null) {
+        return null;
+    }
+
+    const {$from, $to} = editor.state.selection;
+    const range = {from: $from.start(), to: $to.end()};
+
+    toggleBlockNode(editor, range, target);
+
+    return addHighlightAtRange(editor, 'BLOCK_STYLE_SUGGESTION', {...data, blockType}, range);
+}
+
+function toggleBlockNode(
+    editor: Editor,
+    range: {from: number; to: number},
+    target: {name: string; attrs?: {[key: string]: any}},
+): void {
+    editor.chain().setTextSelection(range)
+        .toggleNode(target.name, 'paragraph', target.attrs)
+        .run();
+}
+
+/**
+ * Adds a link as a suggestion (editor3's CREATE_LINK_SUGGESTION): the
+ * link applies immediately, the range gets an ADD_LINK_SUGGESTION mark.
+ */
+export function createLinkSuggestion(
+    editor: Editor,
+    link: {href: string},
+    data: ISuggestionData,
+): string | null {
+    const {from, to, empty} = editor.state.selection;
+
+    if (empty) {
+        return null;
+    }
+
+    editor.commands.command(({state, tr, dispatch}) => {
+        if (dispatch) {
+            tr.addMark(from, to, state.schema.marks.link.create({href: link.href}));
+            dispatch(tr);
+        }
+
+        return true;
+    });
+
+    return addHighlightAtRange(editor, 'ADD_LINK_SUGGESTION', {...data, link}, {from, to});
+}
+
+/**
+ * The full extent of the link mark around `pos`.
+ */
+function getLinkRangeAt(editor: Editor, pos: number): {from: number; to: number; mark: Mark} | null {
+    const doc = editor.state.doc;
+    const resolved = doc.resolve(pos);
+    const node = resolved.nodeAfter ?? resolved.nodeBefore;
+    const mark = node?.marks.find((nodeMark) => nodeMark.type.name === 'link');
+
+    if (mark == null) {
+        return null;
+    }
+
+    let from: number | null = null;
+    let to: number | null = null;
+
+    doc.descendants((child, childPos) => {
+        if (!child.isText || !mark.isInSet(child.marks)) {
+            return true;
+        }
+
+        const childEnd = childPos + child.nodeSize;
+
+        if (childPos <= pos && pos <= childEnd) {
+            from = childPos;
+            to = childEnd;
+        } else if (to === childPos && from != null) {
+            to = childEnd; // adjacent continuation of the same link
+        }
+
+        return true;
+    });
+
+    return from == null || to == null ? null : {from, to, mark};
+}
+
+/**
+ * Suggests removing the link at the selection (editor3's
+ * REMOVE_LINK_SUGGESTION): the link stays until the suggestion is
+ * accepted.
+ */
+export function createRemoveLinkSuggestion(editor: Editor, data: ISuggestionData): string | null {
+    const linkRange = getLinkRangeAt(editor, editor.state.selection.from);
+
+    if (linkRange == null) {
+        return null;
+    }
+
+    return addHighlightAtRange(editor, 'REMOVE_LINK_SUGGESTION', data, linkRange);
+}
+
+/**
+ * Suggests changing the link at the selection (editor3's
+ * CHANGE_LINK_SUGGESTION): the new link applies immediately; `from`/`to`
+ * record what rejecting restores, in editor3's shape.
+ */
+export function createChangeLinkSuggestion(
+    editor: Editor,
+    link: {href: string},
+    data: ISuggestionData,
+): string | null {
+    const linkRange = getLinkRangeAt(editor, editor.state.selection.from);
+
+    if (linkRange == null) {
+        return null;
+    }
+
+    const previous = {href: linkRange.mark.attrs.href};
+
+    editor.commands.command(({state, tr, dispatch}) => {
+        if (dispatch) {
+            tr.removeMark(linkRange.from, linkRange.to, linkRange.mark);
+            tr.addMark(linkRange.from, linkRange.to, state.schema.marks.link.create({href: link.href}));
+            dispatch(tr);
+        }
+
+        return true;
+    });
+
+    return addHighlightAtRange(
+        editor,
+        'CHANGE_LINK_SUGGESTION',
+        {...data, to: link, from: previous},
+        linkRange,
+    );
+}
+
 // --- resolving suggestions ---
 
 function findSuggestionRanges(editor: Editor, styleName: string): Array<{from: number; to: number; mark: Mark}> {
@@ -309,21 +588,55 @@ function resolveSuggestion(
         return false;
     }
 
-    // accepted ADD and rejected DELETE keep the text; the other two remove it
-    const keepText = accepted === (entry.type === 'ADD_SUGGESTION');
     const ranges = findSuggestionRanges(editor, styleName);
     const suggestionText = ranges
         .map(({from, to}) => editor.state.doc.textBetween(from, to))
         .join('');
 
-    return editor.commands.command(({tr, dispatch}) => {
+    const resolved = editor.commands.command(({state, tr, dispatch}) => {
         if (dispatch) {
+            // accepted ADD and rejected DELETE keep the text; ADD/DELETE
+            // otherwise remove it (editor3's applyChangeSuggestion)
+            const removeText = CHANGE_SUGGESTION_KEYS.includes(entry.type)
+                && accepted !== (entry.type === 'ADD_SUGGESTION');
+
             // reverse order so earlier positions stay valid on deletions
             for (const range of [...ranges].reverse()) {
-                if (keepText) {
-                    tr.removeMark(range.from, range.to, range.mark);
-                } else {
+                if (removeText) {
                     tr.delete(range.from, range.to);
+                    continue;
+                }
+
+                tr.removeMark(range.from, range.to, range.mark);
+
+                const styleMarkName = MARK_BY_STYLE_SUGGESTION_KEY[entry.type];
+
+                if (styleMarkName != null && !accepted) {
+                    // rejecting a style suggestion restores the original:
+                    // the suggestion either added the style (originalStyle
+                    // empty; remove it) or removed it (re-apply it)
+                    if (entry.originalStyle === '') {
+                        tr.removeMark(range.from, range.to, state.schema.marks[styleMarkName]);
+                    } else {
+                        tr.addMark(range.from, range.to, state.schema.marks[styleMarkName].create());
+                    }
+                }
+
+                const linkMark = state.doc.rangeHasMark(range.from, range.to, state.schema.marks.link);
+                const removeLink = (entry.type === 'ADD_LINK_SUGGESTION' && !accepted)
+                    || (entry.type === 'REMOVE_LINK_SUGGESTION' && accepted);
+
+                if (removeLink && linkMark) {
+                    tr.removeMark(range.from, range.to, state.schema.marks.link);
+                }
+
+                if (entry.type === 'CHANGE_LINK_SUGGESTION' && !accepted) {
+                    tr.removeMark(range.from, range.to, state.schema.marks.link);
+                    tr.addMark(
+                        range.from,
+                        range.to,
+                        state.schema.marks.link.create({href: entry.from?.href}),
+                    );
                 }
             }
 
@@ -355,6 +668,17 @@ function resolveSuggestion(
 
         return true;
     });
+
+    if (resolved && entry.type === 'BLOCK_STYLE_SUGGESTION' && !accepted && ranges.length > 0) {
+        // rejecting toggles the block type back (editor3's toggleBlockType)
+        const target = getBlockNodeForDraftType(entry.blockType);
+
+        if (target != null) {
+            toggleBlockNode(editor, {from: ranges[0].from, to: ranges[ranges.length - 1].to}, target);
+        }
+    }
+
+    return resolved;
 }
 
 /**

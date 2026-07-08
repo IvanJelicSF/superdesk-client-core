@@ -321,6 +321,17 @@ export const editorTiptapSchema = new Schema({
                         + ' color: var(--sd-editor-colour__removing);'
                         + ' background-color: var(--sd-editor-colour__removing-bg);',
                 };
+                const removeSuggestionStyle =
+                    'color: var(--sd-editor-colour__removing);'
+                    + ' background-color: var(--sd-editor-colour__removing-bg);';
+
+                // style / link / block suggestions share one visual
+                ['TOGGLE_BOLD', 'TOGGLE_ITALIC', 'TOGGLE_UNDERLINE', 'TOGGLE_STRIKETHROUGH',
+                    'TOGGLE_SUBSCRIPT', 'TOGGLE_SUPERSCRIPT', 'BLOCK_STYLE',
+                    'ADD_LINK', 'REMOVE_LINK', 'CHANGE_LINK',
+                ].forEach((key) => {
+                    styleByKey[`${key}_SUGGESTION`] = removeSuggestionStyle;
+                });
 
                 return ['span', {
                     'data-highlight': mark.attrs.styleName,

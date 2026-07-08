@@ -16,7 +16,7 @@ import {mediaDropHandling} from './insertion';
 import {spellcheckerMenu} from './spellchecker-menu';
 import {highlightsClickHandling} from './highlights-ui';
 import {createSuggestionsExtension} from 'core/editor-tiptap/suggestions';
-import {getAuthorInfo} from 'core/editor3/actions/highlights';
+import {getSuggestionMetadata} from 'core/editor3/actions/suggestions';
 
 /**
  * Tiptap-based rich text field (editor3 replacement, migration Phase 2).
@@ -63,11 +63,7 @@ function createOperationalValue(docJson: {[key: string]: any} | null, language: 
             findReplace,
             highlightsClickHandling,
             createSuggestionsExtension({
-                getAuthorData: () => {
-                    const {author, date} = getAuthorInfo();
-
-                    return {author, date};
-                },
+                getAuthorData: getSuggestionMetadata,
             }),
             createSpellcheckerExtension({
                 language,
