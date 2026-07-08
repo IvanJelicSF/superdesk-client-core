@@ -251,13 +251,64 @@ with existing consumers), editor3 style-map visuals through the mark's
 
 Suite at this point: 1057 specs, 0 failures.
 
-## Phase 3, wave E — Suggestions / track-changes (in progress)
+## Phase 3, wave E — Suggestions / track-changes
 
 The largest single item of the migration (~4.1k LOC of Draft.js reducer
 logic in editor3). Acceptance contract: the 11 reducer spec files in
 `scripts/core/editor3/reducers/tests/` (insert, delete, paste, style,
-link, split, block-style, accept/reject). Design decision pending per
-the plan: `prosemirror-changeset` vs a pure mark-based approach.
+link, split, block-style, accept/reject).
+
+### Part 1 — design + core engine (`ef48e6054`, 2026-07-08)
+
+**Design decision: pure mark-based, not `prosemirror-changeset`.** The
+persisted format requires marks plus `highlightsData` payloads
+(converted editor3 documents carry them), and the behavioral contract
+is mark-centric — per-author style names, adjacency merging, char-level
+rules. Changeset computes after-the-fact diffs between document
+versions; it would need translation to the stored format anyway and
+can't express "this char belongs to that author's suggestion".
+
+`suggestions.ts`, with core editor3 reducer cases ported to
+`tests/suggestions.spec.ts`:
+
+- `createAddSuggestion`: text inserted with an ADD_SUGGESTION mark; an
+  insertion adjacent to (or inside) a same-author ADD suggestion
+  extends it (same style name, `lastHighlightIds` untouched) instead of
+  creating a new one; marks inherited from surrounding suggestions are
+  stripped from the inserted range; a non-collapsed selection first
+  becomes a DELETE suggestion (replace semantics);
+- `createDeleteSuggestion`: characters are marked, not removed, with
+  the same-author adjacency rule; characters already suggested for
+  deletion are skipped over; characters the same author suggested
+  adding are removed for real (suggestion data dropped once empty);
+  backspace/delete cursor semantics match editor3;
+- accept/reject: accepted ADD and rejected DELETE keep text and drop
+  marks, the other two remove text; resolved entries move to
+  `resolvedSuggestionsHistory` in the exact shape of editor3's
+  `moveToSuggestionsHistory`;
+- suggesting-mode plugin + extension intercepting typing,
+  Backspace/Delete, and paste (plain text for now); toolbar toggle
+  (editor3's icon and label); accept/reject in the highlights popup;
+  editor3 style-map visuals.
+
+Compatibility fix uncovered by this work: `addHighlight` now stores
+entries as `{...data, type}` — editor3's exact shape (suggestions flat,
+comments/annotations keep the `{data: {...}}` wrapper their callers
+pass) — so converted and new highlights are structurally identical.
+
+Also fixed a pre-existing order-dependent test flake: editor3.spec
+replaces `ng` with a throwing mock and never restores it; tables.spec
+now registers its own injector.
+
+Suite: 1071 specs, 0 failures.
+
+### Remaining wave E parts
+
+Style/link/block-style suggestion types, split/merge paragraph
+suggestions, rich paste as suggestion, accept-all/reject-all, the
+suggestion popup with author info, and export-time handling of
+unresolved suggestions in `body_html` (editor3's
+`prepareHighlightsForExport` path).
 
 ---
 
