@@ -365,16 +365,47 @@ currently shows the author id with Accept/Reject; editor3's
 SuggestionsPopup resolves users via the users service), and the
 authoring-react toolbar placement for accept-all/reject-all.
 
+## Phase 4 — Editor-agnostic consumers and public API (`14be0c5b6`, 2026-07-08)
+
+The consumer inventory (draft-js importers and `draftjsState` readers
+outside the editor cores) resolved into three groups:
+
+- **No change needed**: the editor3 field itself; live-editor-connected
+  components in angular authoring (`TextStatisticsConnected`,
+  `ValidateCharactersConnected` — they read the running editor3 store,
+  never stored state); `copyEmbeddedArticlesIntoAssociations` (used
+  only by the editor3 branch of the body_html adapter — the Tiptap
+  branch has `getEmbeddedArticles`); string-value fallbacks (both
+  editors import plain text, verified parity).
+- **Changed**:
+  - `article-access.ts` — read helpers for consumers inspecting stored
+    state (resolved comments/suggestions histories, unresolved comments
+    with `commentedText`, highlighted-text lookup), returning
+    editor3-shaped entries from `tiptapState`;
+  - the track-changes widgets (inline comments, resolved suggestions)
+    read fields saved by either editor;
+  - authoring-react macros support Tiptap fields: `overwriteArticle`
+    drops their `fields_meta` so patched values re-import; keep-style
+    replace macros serialize via `pmDocToHtml` before patching and
+    re-import after (editor3's style-preserving patch has no Tiptap
+    equivalent yet — unresolved marks in a patched field don't
+    survive, documented inline);
+  - public API: `components.EditorTiptapHtml`, a Tiptap-backed drop-in
+    for `Editor3Html` (same html-in/html-out contract on the
+    editor3-compatible importer + byte-parity serializer).
+- **Deferred until their fields migrate**: the broadcasting and
+  ai-widget extensions (they own editor3 fields); `PlainTextEditor`
+  (not article-state related).
+
+Verification: full suite 1089 specs / 0 failures; typecheck across all
+11 projects (extensions consume the changed `superdesk-api.d.ts`).
+
 ---
 
-## Still open (beyond wave E)
+## Still open
 
 - Comment replies UI; find-replace sidebar wiring; field config /
   difference components.
-- Phase 4: editor-agnostic types in `superdesk-api.d.ts`, a
-  Tiptap-backed `Editor3Html` equivalent, migration of the ~17
-  draft-js-importing consumers (widgets reading `draftjsState`,
-  macros, templates, extensions).
 - Phase 5: Playwright suite duplication, pilot with `body_html` drift
   monitoring, default flip.
 - Infrastructure: publish superdesk-ui-framework `react18` to npm and
