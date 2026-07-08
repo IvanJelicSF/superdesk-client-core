@@ -1,5 +1,5 @@
 import {IArticle} from 'superdesk-api';
-import {plainTextToPmDoc} from 'core/editor-tiptap';
+import {plainTextToPmDoc, getPublicApiComments} from 'core/editor-tiptap';
 import {ITiptapValueStorage, ITiptapFieldConfig} from '../../fields/tiptap';
 import {computeTiptapOutput} from './compute-tiptap-output';
 
@@ -45,7 +45,17 @@ export function storeTiptapValueBase(
     config: ITiptapFieldConfig,
     plainTextInMultiLineMode?: boolean,
 ): {article: IArticle; stringValue: string; annotations: Array<any>} {
-    const tiptapState = value.tiptapState;
+    // expose comments to the server, like editor3's `addCommentsForServer`
+    const tiptapState = {
+        ...value.tiptapState,
+        attrs: {
+            ...(value.tiptapState.attrs ?? {}),
+            customData: {
+                ...(value.tiptapState.attrs?.customData ?? {}),
+                __PUBLIC_API__comments: getPublicApiComments(value.tiptapState),
+            },
+        },
+    };
 
     const {stringValue, annotations} = computeTiptapOutput(
         tiptapState,

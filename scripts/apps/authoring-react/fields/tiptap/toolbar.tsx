@@ -16,6 +16,7 @@ import {
     toggleTableHeader,
 } from 'core/editor-tiptap/commands';
 import {showUploadDialogAndInsert, insertEmbedFromInput} from './insertion';
+import {promptComment, promptAnnotation} from './highlights-ui';
 
 interface IButtonProps {
     icon: string;
@@ -288,6 +289,20 @@ export class Toolbar extends React.PureComponent<IProps> {
                     }}
                 />
 
+                <ToolbarButton
+                    icon="icon-comment"
+                    label={gettext('Comment')}
+                    onToggle={() => {
+                        promptComment(editor);
+                    }}
+                />
+                <ToolbarButton
+                    icon="icon-pencil"
+                    label={gettext('Annotation')}
+                    onToggle={() => {
+                        promptAnnotation(editor);
+                    }}
+                />
                 <ToolbarButton
                     icon="icon-picture"
                     label={gettext('Media')}

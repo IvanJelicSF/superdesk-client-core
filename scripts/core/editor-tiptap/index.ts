@@ -10,3 +10,14 @@ export {
     getEmbeddedArticles,
     plainTextToPmDoc,
 } from './output';
+export {
+    addHighlight,
+    updateHighlightData,
+    removeHighlight,
+    resolveComment,
+    getHighlightData,
+    getHighlightedText,
+    getHighlightsAt,
+    getCustomData,
+    getPublicApiComments,
+} from './highlights';

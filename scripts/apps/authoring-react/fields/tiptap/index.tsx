@@ -14,6 +14,7 @@ import {EmbedNodeView} from './node-views/embed';
 import {ArticleEmbedNodeView} from './node-views/article-embed';
 import {mediaDropHandling} from './insertion';
 import {spellcheckerMenu} from './spellchecker-menu';
+import {highlightsClickHandling} from './highlights-ui';
 
 /**
  * Tiptap-based rich text field (editor3 replacement, migration Phase 2).
@@ -58,6 +59,7 @@ function createOperationalValue(docJson: {[key: string]: any} | null, language: 
             editingBehavior,
             mediaDropHandling,
             findReplace,
+            highlightsClickHandling,
             createSpellcheckerExtension({
                 language,
                 onContextMenu: (payload) => {

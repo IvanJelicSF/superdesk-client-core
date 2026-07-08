@@ -13,11 +13,14 @@ import {
     spellcheckerPluginKey,
 } from '../spellchecker';
 
+const fixtureBlock = (key: string, text: string, type: string) =>
+    ({key, text, type, depth: 0, inlineStyleRanges: [], entityRanges: [], data: {}});
+
 const richFixture: any = {
     blocks: [
-        {key: 'b1', text: 'first paragraf here', type: 'unstyled', depth: 0, inlineStyleRanges: [], entityRanges: [], data: {}},
-        {key: 'l1', text: 'a list itm', type: 'unordered-list-item', depth: 0, inlineStyleRanges: [], entityRanges: [], data: {}},
-        {key: 'b2', text: 'line\nbreak wrd', type: 'unstyled', depth: 0, inlineStyleRanges: [], entityRanges: [], data: {}},
+        fixtureBlock('b1', 'first paragraf here', 'unstyled'),
+        fixtureBlock('l1', 'a list itm', 'unordered-list-item'),
+        fixtureBlock('b2', 'line\nbreak wrd', 'unstyled'),
     ],
     entityMap: {},
 };

@@ -98,8 +98,13 @@ describe('editor-tiptap field output', () => {
         const article = {language: 'en'} as IArticle;
 
         const result = storeTiptapValueBase('body_html', article, {tiptapState: doc}, {});
+        const stored = result.article.fields_meta.body_html.tiptapState[0];
 
-        expect(result.article.fields_meta.body_html.tiptapState).toEqual([doc]);
+        expect(stored.content).toEqual(doc.content);
+
+        // comments are exposed to the server on save (none in this fixture)
+        expect(stored.attrs.customData.__PUBLIC_API__comments).toEqual([]);
+
         expect(result.article.fields_meta.body_html.annotations.length).toBe(2);
         expect(result.stringValue).toContain('annotation-id="1"');
     });

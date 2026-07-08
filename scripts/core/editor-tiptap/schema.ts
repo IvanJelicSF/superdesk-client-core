@@ -307,7 +307,19 @@ export const editorTiptapSchema = new Schema({
             },
             excludes: '',
             inclusive: false,
-            toDOM: (mark) => ['span', {'data-highlight': mark.attrs.styleName}],
+            toDOM: (mark) => {
+                // in-editor visuals matching editor3's highlightsConfig
+                // draftStyleMap; not part of the serialized output
+                const styleByKey = {
+                    COMMENT: 'background-color: var(--sd-editor-colour__comment-bg);',
+                    ANNOTATION: 'border-bottom: 4px solid var(--sd-editor-colour__adding);',
+                };
+
+                return ['span', {
+                    'data-highlight': mark.attrs.styleName,
+                    style: styleByKey[mark.attrs.highlightKey],
+                }];
+            },
         },
         /**
          * Custom editor tags (`customEditorTags` in content profile config),
