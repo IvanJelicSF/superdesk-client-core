@@ -1,6 +1,15 @@
 import {Editor, findParentNode} from '@tiptap/core';
+import {TextSelection} from '@tiptap/pm/state';
 import {Node as PmNode, Slice} from '@tiptap/pm/model';
 import {wrapInList, liftListItem} from '@tiptap/pm/schema-list';
+import {
+    isInTable,
+    addRowAfter,
+    addColumnAfter,
+    deleteRow,
+    deleteColumn,
+    deleteTable,
+} from '@tiptap/pm/tables';
 import {htmlToPmDoc} from './from-html';
 
 /**
@@ -52,6 +61,91 @@ export function insertExternalHtml(editor: Editor, html: string, associations: {
         if (dispatch) {
             dispatch(tr.replaceSelection(slice).scrollIntoView());
         }
+
+        return true;
+    });
+}
+
+export function isTableActive(editor: Editor): boolean {
+    return isInTable(editor.state);
+}
+
+/**
+ * Inserts an empty table at the selection (editor3's default was
+ * 1 row × 2 columns).
+ */
+export function insertTable(editor: Editor, numRows: number = 1, numCols: number = 2): boolean {
+    const {schema} = editor;
+    const rows = [];
+
+    for (let i = 0; i < numRows; i++) {
+        const cells = [];
+
+        for (let j = 0; j < numCols; j++) {
+            cells.push(schema.nodes.tableCell.createAndFill());
+        }
+
+        rows.push(schema.nodes.tableRow.create(null, cells));
+    }
+
+    const table = schema.nodes.table.create(null, rows);
+
+    return editor.commands.command(({tr, dispatch}) => {
+        if (dispatch) {
+            const offset = tr.selection.anchor + 1;
+
+            tr.replaceSelectionWith(table)
+                .scrollIntoView()
+                .setSelection(TextSelection.near(tr.doc.resolve(offset)));
+
+            dispatch(tr);
+        }
+
+        return true;
+    });
+}
+
+const tableCommands = {addRowAfter, addColumnAfter, deleteRow, deleteColumn, deleteTable};
+
+export function runTableCommand(editor: Editor, commandName: keyof typeof tableCommands): boolean {
+    return editor.commands.command(
+        ({state, dispatch}) => tableCommands[commandName](state, dispatch),
+    );
+}
+
+/**
+ * Toggles the header row: the `withHeader` attribute drives `<thead>`
+ * serialization; first-row cell types are kept in sync for editing.
+ */
+export function toggleTableHeader(editor: Editor): boolean {
+    const tableParent = findParentNode((node) => node.type.name === 'table')(editor.state.selection);
+
+    if (tableParent == null) {
+        return false;
+    }
+
+    return editor.commands.command(({state, tr, dispatch}) => {
+        if (!dispatch) {
+            return true;
+        }
+
+        const withHeader = tableParent.node.attrs.withHeader !== true;
+        const cellType = withHeader ? state.schema.nodes.tableHeader : state.schema.nodes.tableCell;
+
+        tr.setNodeMarkup(tableParent.pos, null, {...tableParent.node.attrs, withHeader});
+
+        const firstRow = tableParent.node.child(0);
+
+        // position of the first cell node: table pos + 1 (into the table)
+        // + 1 (into the first row)
+        let cellPos = tableParent.pos + 2;
+
+        firstRow.forEach((cell) => {
+            tr.setNodeMarkup(cellPos, cellType, cell.attrs);
+            cellPos += cell.nodeSize;
+        });
+
+        dispatch(tr);
 
         return true;
     });

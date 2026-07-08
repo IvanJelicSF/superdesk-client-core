@@ -1,6 +1,11 @@
-import {Node as TiptapNode, Mark as TiptapMark, Extensions} from '@tiptap/core';
+import {Node as TiptapNode, Mark as TiptapMark, Extension, Extensions, NodeViewRenderer} from '@tiptap/core';
 import {NodeSpec, MarkSpec} from '@tiptap/pm/model';
 import {editorTiptapSchema} from './schema';
+
+export interface IExtensionsOptions {
+    // per-node custom rendering inside the editor (e.g. React node views)
+    nodeViews?: {[nodeName: string]: NodeViewRenderer};
+}
 
 /**
  * Generates Tiptap extensions from `editorTiptapSchema` so that the schema an
@@ -19,11 +24,24 @@ function attributesFromSpec(spec: NodeSpec | MarkSpec) {
     }, {});
 }
 
-export function getEditorTiptapExtensions(): Extensions {
+export function getEditorTiptapExtensions(options: IExtensionsOptions = {}): Extensions {
     const {nodes, marks} = editorTiptapSchema.spec;
-    const extensions: Extensions = [];
+    const extensions: Extensions = [
+        // forwards schema spec properties that tiptap's Node.create does not
+        // handle itself (e.g. tableRole for prosemirror-tables)
+        Extension.create({
+            name: 'schemaSpecExtras',
+            extendNodeSchema(extension) {
+                const spec: NodeSpec | undefined = (nodes as any).get(extension.name);
+
+                return spec?.tableRole != null ? {tableRole: spec.tableRole} : {};
+            },
+        }),
+    ];
 
     (nodes as any).forEach((name: string, spec: NodeSpec) => {
+        const nodeView = options.nodeViews?.[name];
+
         extensions.push(TiptapNode.create({
             name,
             topNode: name === 'doc',
@@ -44,6 +62,7 @@ export function getEditorTiptapExtensions(): Extensions {
             renderHTML({node}) {
                 return spec.toDOM != null ? (spec.toDOM as any)(node) : ['div', 0];
             },
+            addNodeView: nodeView == null ? undefined : () => nodeView,
         }));
     });
 

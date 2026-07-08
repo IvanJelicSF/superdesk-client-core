@@ -112,28 +112,45 @@ export const editorTiptapSchema = new Schema({
             parseDOM: [{tag: 'li'}],
             toDOM: () => ['li', 0],
         },
+        // `tableRole` and the colspan/rowspan/colwidth attributes make the
+        // nodes compatible with prosemirror-tables editing commands; the
+        // HTML serializer ignores them (editor3 tables had no cell spans)
         table: {
             attrs: {withHeader: {default: false}},
             content: 'tableRow+',
             group: 'block',
             isolating: true,
+            tableRole: 'table',
             parseDOM: [{tag: 'table'}],
             toDOM: () => ['table', 0],
         },
         tableRow: {
             content: '(tableCell | tableHeader)+',
+            tableRole: 'row',
             parseDOM: [{tag: 'tr'}],
             toDOM: () => ['tr', 0],
         },
         tableHeader: {
             content: 'block+',
             isolating: true,
+            tableRole: 'header_cell',
+            attrs: {
+                colspan: {default: 1},
+                rowspan: {default: 1},
+                colwidth: {default: null},
+            },
             parseDOM: [{tag: 'th'}],
             toDOM: () => ['th', 0],
         },
         tableCell: {
             content: 'block+',
             isolating: true,
+            tableRole: 'cell',
+            attrs: {
+                colspan: {default: 1},
+                rowspan: {default: 1},
+                colwidth: {default: null},
+            },
             parseDOM: [{tag: 'td'}],
             toDOM: () => ['td', 0],
         },
@@ -227,8 +244,9 @@ export const editorTiptapSchema = new Schema({
                 {tag: 'strong'},
                 {
                     style: 'font-weight',
-                    getAttrs: (value: string) =>
-                        (['bold', 'bolder', '500', '600', '700', '800', '900'].includes(value) ? null : false),
+                    getAttrs: ((value: string) =>
+                        (['bold', 'bolder', '500', '600', '700', '800', '900'].includes(value) ? null : false)
+                    ) as any,
                 },
                 ...['light', 'lighter', 'normal', '100', '200', '300', '400'].map((value) => ({
                     style: `font-weight=${value}`,

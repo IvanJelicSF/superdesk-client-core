@@ -6,7 +6,15 @@ import {Input} from 'superdesk-ui-framework/react';
 import {showModal} from '@sourcefabric/common';
 import {gettext} from 'core/utils';
 import {ModalSimple} from 'core/ui/components/modal-simple';
-import {toggleList, isListActive, setLink} from 'core/editor-tiptap/commands';
+import {
+    toggleList,
+    isListActive,
+    setLink,
+    insertTable,
+    isTableActive,
+    runTableCommand,
+    toggleTableHeader,
+} from 'core/editor-tiptap/commands';
 
 interface IButtonProps {
     icon: string;
@@ -222,6 +230,66 @@ export class Toolbar extends React.PureComponent<IProps> {
                         this.editLink();
                     }}
                 />
+
+                <ToolbarButton
+                    icon="icon-table"
+                    label={gettext('Table')}
+                    active={isTableActive(editor)}
+                    onToggle={() => {
+                        if (!isTableActive(editor)) {
+                            insertTable(editor);
+                        }
+                    }}
+                />
+
+                {
+                    isTableActive(editor) && (
+                        <React.Fragment>
+                            <ToolbarButton
+                                icon="icon-plus-sign"
+                                label={gettext('Add row')}
+                                onToggle={() => {
+                                    runTableCommand(editor, 'addRowAfter');
+                                }}
+                            />
+                            <ToolbarButton
+                                icon="icon-minus-sign"
+                                label={gettext('Remove row')}
+                                onToggle={() => {
+                                    runTableCommand(editor, 'deleteRow');
+                                }}
+                            />
+                            <ToolbarButton
+                                icon="icon-plus-small"
+                                label={gettext('Add column')}
+                                onToggle={() => {
+                                    runTableCommand(editor, 'addColumnAfter');
+                                }}
+                            />
+                            <ToolbarButton
+                                icon="icon-minus-small"
+                                label={gettext('Remove column')}
+                                onToggle={() => {
+                                    runTableCommand(editor, 'deleteColumn');
+                                }}
+                            />
+                            <ToolbarButton
+                                icon="icon-heading-1"
+                                label={gettext('Toggle header row')}
+                                onToggle={() => {
+                                    toggleTableHeader(editor);
+                                }}
+                            />
+                            <ToolbarButton
+                                icon="icon-trash"
+                                label={gettext('Remove table')}
+                                onToggle={() => {
+                                    runTableCommand(editor, 'deleteTable');
+                                }}
+                            />
+                        </React.Fragment>
+                    )
+                }
 
                 <ToolbarButton
                     icon="icon-revert"

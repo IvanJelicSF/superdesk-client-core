@@ -2,6 +2,7 @@ import {Extension} from '@tiptap/core';
 import {history, undo, redo} from '@tiptap/pm/history';
 import {Plugin} from '@tiptap/pm/state';
 import {splitListItem, sinkListItem, liftListItem} from '@tiptap/pm/schema-list';
+import {tableEditing, goToNextCell} from '@tiptap/pm/tables';
 import {insertExternalHtml} from './commands';
 
 /**
@@ -29,8 +30,16 @@ export const editingBehavior = Extension.create({
             'Mod-u': () => this.editor.commands.toggleMark('underline'),
 
             'Enter': pmCommand(splitListItem(this.editor.schema.nodes.listItem)),
-            'Tab': pmCommand(sinkListItem(this.editor.schema.nodes.listItem)),
-            'Shift-Tab': pmCommand(liftListItem(this.editor.schema.nodes.listItem)),
+            'Tab': () =>
+                this.editor.commands.command(({state, dispatch}) => goToNextCell(1)(state, dispatch))
+                || this.editor.commands.command(
+                    ({state, dispatch}) => sinkListItem(this.editor.schema.nodes.listItem)(state, dispatch),
+                ),
+            'Shift-Tab': () =>
+                this.editor.commands.command(({state, dispatch}) => goToNextCell(-1)(state, dispatch))
+                || this.editor.commands.command(
+                    ({state, dispatch}) => liftListItem(this.editor.schema.nodes.listItem)(state, dispatch),
+                ),
         };
     },
 
@@ -39,6 +48,8 @@ export const editingBehavior = Extension.create({
 
         return [
             history(),
+
+            tableEditing(),
 
             new Plugin({
                 props: {

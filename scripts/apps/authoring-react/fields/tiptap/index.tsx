@@ -1,11 +1,15 @@
 import {ICustomFieldType, ICommonFieldConfig} from 'superdesk-api';
 import {Editor as TiptapEditor} from '@tiptap/core';
+import {ReactNodeViewRenderer} from '@tiptap/react';
 import {gettext} from 'core/utils';
 import {convertDraftToPmDoc} from 'core/editor-tiptap';
 import {getEditorTiptapExtensions} from 'core/editor-tiptap/extensions';
 import {editingBehavior} from 'core/editor-tiptap/editing';
 import {Editor} from './editor';
 import {Preview} from './preview';
+import {MediaNodeView} from './node-views/media';
+import {EmbedNodeView} from './node-views/embed';
+import {ArticleEmbedNodeView} from './node-views/article-embed';
 
 /**
  * Tiptap-based rich text field (editor3 replacement, migration Phase 2).
@@ -39,7 +43,16 @@ export const TIPTAP_FIELD_TYPE = 'editor-tiptap';
 
 function createOperationalValue(docJson: {[key: string]: any} | null): ITiptapValueOperational {
     const editor = new TiptapEditor({
-        extensions: [...getEditorTiptapExtensions(), editingBehavior],
+        extensions: [
+            ...getEditorTiptapExtensions({
+                nodeViews: {
+                    media: ReactNodeViewRenderer(MediaNodeView),
+                    embed: ReactNodeViewRenderer(EmbedNodeView),
+                    articleEmbed: ReactNodeViewRenderer(ArticleEmbedNodeView),
+                },
+            }),
+            editingBehavior,
+        ],
         content: docJson ?? {type: 'doc', content: [{type: 'paragraph'}]},
     });
 
