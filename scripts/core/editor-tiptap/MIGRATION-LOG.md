@@ -302,13 +302,45 @@ now registers its own injector.
 
 Suite: 1071 specs, 0 failures.
 
+### Part 2 — style, block-style and link suggestions (`8cbe5f30c`, 2026-07-08)
+
+Export-time behavior settled first (it affects save parity): editor3's
+`prepareEditor3StateForExport` does NOT resolve suggestions — it only
+strips find-replace decorative styles (ours are decorations already)
+and writes `__PUBLIC_API__comments` (done in wave D). Unresolved
+suggestion styles simply produce no markup, so suggested-deleted text
+exports as-is. The serializer already behaves identically by
+construction; a parity spec now pins it byte-for-byte against editor3.
+
+New suggestion types, resolving per editor3's `processSuggestion`:
+
+- **Style** (`createChangeStyleSuggestion`): the style applies
+  immediately; the range gets a `TOGGLE_<STYLE>_SUGGESTION` mark whose
+  `originalStyle` records the Draft.js style name to restore on reject
+  (`''` when the suggestion added the style). Toggling back on the same
+  range removes the suggestion instead of stacking; re-toggling over an
+  existing suggestion inherits its `originalStyle`.
+- **Block style** (`createBlockStyleSuggestion`): the block type
+  toggles immediately, the whole block text is marked; `blockType` uses
+  editor3's strings ('H1'..'H6', 'quote') so converted documents
+  resolve identically; reject toggles the block back.
+- **Links**: add (reject removes the link), remove (the link stays
+  until accepted), change (new href applies; `from`/`to` recorded in
+  editor3's shape; reject restores the previous href).
+
+The resolve path now dispatches per type; all types share the
+`resolvedSuggestionsHistory` entry shape. In suggesting mode the
+toolbar routes formatting buttons, headings/blockquote, and the link
+modal through suggestions. Suggestion metadata comes from editor3's
+`getSuggestionMetadata` (author = session user **id** — a fix over
+part 1, which used the display name).
+
+Suite: 1081 specs, 0 failures.
+
 ### Remaining wave E parts
 
-Style/link/block-style suggestion types, split/merge paragraph
-suggestions, rich paste as suggestion, accept-all/reject-all, the
-suggestion popup with author info, and export-time handling of
-unresolved suggestions in `body_html` (editor3's
-`prepareHighlightsForExport` path).
+Split/merge paragraph suggestions, rich paste as suggestion,
+accept-all/reject-all, and the suggestion popup with author info.
 
 ---
 
