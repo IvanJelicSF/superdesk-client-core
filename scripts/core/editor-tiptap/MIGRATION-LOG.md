@@ -337,10 +337,33 @@ part 1, which used the display name).
 
 Suite: 1081 specs, 0 failures.
 
+### Part 3 — paragraph suggestions, rich paste, accept-all (`b9e35c409`, 2026-07-08)
+
+Split and merge paragraph suggestions use editor3's exact
+representation: the structural change happens for real, and a marked
+`¶` separator character (`Highlights.paragraphSeparator`) records the
+suggestion — at the end of the first block for a split, at the old
+boundary for a merge. Enter in suggesting mode suggests a split;
+Backspace at block start / Delete at block end suggest a merge. The
+cancellation pairs work both ways: splitting where the same author
+suggested a merge removes the merge (and vice versa) instead of
+stacking. Resolution removes the separator either way; rejecting a
+split re-joins the blocks, rejecting a merge re-splits them.
+
+Rich paste in suggesting mode (`pasteAddSuggestion`): content is
+inserted with formatting through the editor3-compatible importer, and
+every inserted character belongs to a single ADD suggestion.
+`acceptAllSuggestions`/`rejectAllSuggestions` resolve everything in the
+document.
+
+Suite: 1088 specs, 0 failures.
+
 ### Remaining wave E parts
 
-Split/merge paragraph suggestions, rich paste as suggestion,
-accept-all/reject-all, and the suggestion popup with author info.
+The suggestion popup showing author display name/avatar (the popup
+currently shows the author id with Accept/Reject; editor3's
+SuggestionsPopup resolves users via the users service), and the
+authoring-react toolbar placement for accept-all/reject-all.
 
 ---
 
