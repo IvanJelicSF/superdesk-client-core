@@ -11,6 +11,14 @@ export function DestinationDirective(adminPublishSettingsService, $rootScope) {
         link: function($scope) {
             $scope.types = adminPublishSettingsService.getTransmissionServices();
 
+            // multi-tenancy: the `internal_tenant` config form is a React
+            // component (see destination.html) — changes come back through here
+            $scope.onInternalTenantConfigChange = (config) => {
+                $scope.$applyAsync(() => {
+                    $scope.destination.config = config;
+                });
+            };
+
             $scope.$watch('destination.delivery_type', (type) => {
                 if (type && !$scope.destination.config && $scope.types[type].config) {
                     $scope.destination.config = angular.extend({}, $scope.types[type].config);

@@ -1,0 +1,45 @@
+# Runs the built client in a container, connected to the superdesk-core stack
+# from /home/ivan/sf/repos/superdesk-core-IvanJelicSF/docker-compose.yml.
+#
+# 1. Start the core WITH the server profile (creates the shared network and
+#    the `server`/`ws` containers this compose proxies to):
+#
+#       cd ../superdesk-core-IvanJelicSF
+#       docker compose --profile server up -d
+#
+# 2. Create tenants whose hosts resolve to 127.0.0.1 (*.localhost does in
+#    modern browsers; add /etc/hosts entries otherwise):
+#
+#       docker compose exec server quart tenants:create tenant-a --host tenant-a.localhost \
+#           --admin-username admin --admin-password admin --admin-email admin@example.com
+#       docker compose exec server quart tenants:create tenant-b --host tenant-b.localhost \
+#           --admin-username admin --admin-password admin --admin-email admin@example.com
+#       docker compose exec server quart tenants:update tenant-a --add-partner tenant-b --direction both
+#       docker compose exec server quart tenants:update tenant-b --add-partner tenant-a --direction both
+#       docker compose exec server quart accounts:set-super-admin --email admin@example.com
+#
+# 3. Start the client:
+#
+#       docker compose up -d --build
+#
+# Then browse http://tenant-a.localhost/ and http://tenant-b.localhost/
+# (login admin/admin), and http://admin.localhost/ for the tenant
+# administration panel (TENANT_ADMIN_HOST in the core compose).
+#
+# The single nginx serves every tenant host; it forwards the Host header to
+# the API, which is what selects the tenant — no per-tenant configuration.
+
+name: superdesk-client
+
+services:
+    client:
+        build: .
+        ports:
+            - "80:80"
+        networks:
+            - superdesk-core
+
+networks:
+    superdesk-core:
+        external: true
+        name: superdesk-core-services_superdesk-core

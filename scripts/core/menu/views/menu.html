@@ -57,6 +57,7 @@
                 class="current-user__button dropdown__toggle"
                 aria-label="{{ 'View profile details' | translate }}"
                 dropdown__toggle data-test-id="my-profile"
+                ng-click="refreshTenants()"
             >
                 <sd-user-avatar data-user="currentUser"></sd-user-avatar>
             </button>
@@ -65,6 +66,20 @@
                     <sd-user-avatar data-user="currentUser"></sd-user-avatar>
                     <h4 class="current-user__display-name">{{currentUser.display_name }}</h4>
                     <span data-test-id="current-user__username" class="current-user__username">{{currentUser.username }}</span>
+                </li>
+                <li class="dropdown__menu-divider" ng-if="userTenants.length > 1"></li>
+                <li class="dropdown__menu-label" ng-if="userTenants.length > 1" translate>Switch tenant</li>
+                <li ng-repeat="tenant in userTenants" data-test-id="tenant-switcher-item">
+                    <button
+                        class="dropdown__menu-item"
+                        ng-click="switchTenant(tenant)"
+                        ng-disabled="isCurrentTenant(tenant)"
+                        title="{{ isCurrentTenant(tenant) ? '' : tenantSwitchTitle(tenant) }}"
+                    >
+                        {{ tenantLabel(tenant) }}
+                        <span class="sd-text__normal-and-small" style="opacity: 0.6;" ng-if="tenantLabel(tenant) !== tenant.tenant">{{ tenant.tenant }}</span>
+                        <span ng-if="isCurrentTenant(tenant)" translate>(current)</span>
+                    </button>
                 </li>
                 <li class="dropdown__menu-divider"></li>
                 <li class="sd-text-align--center  sd-padding-x--2 sd-padding-t--1 sd-padding-b--1" >
@@ -105,6 +120,11 @@
                     {{ :: item.label | translate }}
                     <sup class="btn-toggle-label" ng-if="item.betaMark">Beta</sup>
                 </a>
+            </li>
+            <li class="main-menu__list-item" ng-if="tenantAdminUrl">
+                <a class="main-menu__menu-item" ng-href="{{ tenantAdminUrl }}" target="_blank" rel="noopener"
+                    data-test-id="tenant-administration-link"
+                    translate>Tenant administration</a>
             </li>
             <li ng-if="feedback_url" class="main-menu__group-header" translate>Feedback</li>
             <li class="main-menu__list-item" ng-if="feedback_url">

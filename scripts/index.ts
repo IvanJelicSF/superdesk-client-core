@@ -31,6 +31,8 @@ import {registerGlobalKeybindings} from 'core/keyboard/keyboard';
 import {maybeDisplayInvalidInstanceConfigurationMessage} from 'validate-instance-configuration';
 import {registerLegacyExtensionCompatibilityLayer} from 'register-legacy-extension-compatibility-layer';
 import {dataStore} from 'data-store';
+import {bootstrapTenantAdminPanel, isTenantAdminHost} from 'apps/tenant-admin';
+import {captureTenantSwitchToken} from 'core/multi-tenancy';
 
 let body = angular.element('body');
 
@@ -87,6 +89,19 @@ export function startApp(
     if (window.superdeskConfig) {
         angular.merge(appConfig, window.superdeskConfig);
     }
+
+    // multi-tenancy: on the reserved admin host the tenant administration
+    // panel takes over — there is no tenant to log into on that host
+    if (isTenantAdminHost()) {
+        bootstrapTenantAdminPanel();
+
+        return;
+    }
+
+    // multi-tenancy: a one-time switch token in the URL (tenant switcher SSO)
+    // must be captured and stripped before angular takes its URL snapshot;
+    // it is redeemed after boot (see tryTenantSwitchLogin in core/auth)
+    captureTenantSwitchToken();
 
     // non-mock app configuration must live here to allow tests to override
     // since tests do not import this file.

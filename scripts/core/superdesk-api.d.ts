@@ -3656,6 +3656,15 @@ declare module 'superdesk-api' {
         oidc_auth: any;
         keycloak_config: any;
 
+        /** multi-tenancy: gates tenant-related UI; absent means false */
+        multi_tenant_enabled?: boolean;
+
+        /** multi-tenancy: same credentials work on every tenant; gates the tenant switcher */
+        shared_accounts_enabled?: boolean;
+
+        /** multi-tenancy: origin of the tenant administration panel; empty when not configured */
+        tenant_admin_url?: string;
+
         /** Allow default target for links to be _blank. */
         linksBlankTarget?: boolean;
 

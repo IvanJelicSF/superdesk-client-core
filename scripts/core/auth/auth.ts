@@ -3,6 +3,7 @@ import {AuthoringWorkspaceService} from 'apps/authoring/authoring/services/Autho
 import {appConfig} from 'appConfig';
 import ng from 'core/services/ng';
 import {reloadLanguage} from 'reload-language';
+import {markTenantUnavailable, multiTenantEnabled, tryTenantSwitchLogin} from 'core/multi-tenancy';
 
 export const SESSION_EVENTS = {
     LOGIN: 'login',
@@ -24,6 +25,12 @@ window.fetch = (...args) => {
 
     return originalFetch(resource, config)
         .then((resp) => {
+            if (resp.status === 423) { // tenant suspended or still being provisioned
+                markTenantUnavailable();
+
+                return resp;
+            }
+
             if (resp.status === 401) {
                 const session = ng.get('session');
 
@@ -74,6 +81,10 @@ function AuthExpiredInterceptor(session, $q, $injector, $browser, _) {
                 if (!((response.data || {})._issues || {}).credentials) {
                     return handleAuthExpired(response);
                 }
+            }
+
+            if (_.startsWith(response.config.url, appConfig.server.url) && response.status === 423) {
+                markTenantUnavailable(); // tenant suspended or still being provisioned
             }
 
             return $q.reject(response);
@@ -230,6 +241,12 @@ export default angular.module('superdesk.core.auth', [
             authoringWorkspace: AuthoringWorkspaceService,
             modal,
         ) {
+            // multi-tenancy: arriving from another tenant with a one-time
+            // switch token — exchange it for a session (tenant switcher SSO)
+            if (multiTenantEnabled()) {
+                tryTenantSwitchLogin();
+            }
+
             $rootScope.logout = function() {
                 var canLogout = true;
 

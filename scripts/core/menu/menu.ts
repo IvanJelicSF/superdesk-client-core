@@ -2,6 +2,18 @@ import {reactToAngular1} from 'superdesk-ui-framework';
 import {GlobalMenuHorizontal} from './GlobalMenuHorizontal';
 import {appConfig} from 'appConfig';
 import {addInternalEventListener} from 'core/internal-events';
+import {gettext} from 'core/utils';
+import {
+    ITenantRef,
+    getMyTenants,
+    getTenantAdminUrl,
+    getTenantLabel,
+    hasExchangePartners,
+    isCurrentTenant,
+    multiTenantEnabled,
+    sharedAccountsEnabled,
+    switchToTenant,
+} from 'core/multi-tenancy';
 import {IFullWidthPageCapabilityConfiguration} from 'superdesk-api';
 import {setupAuthoringReact} from './authoring-switch';
 import {AuthoringSwitch} from 'apps/authoring-react/authoring-swtich';
@@ -256,6 +268,42 @@ angular.module('superdesk.core.menu', [
                     }
 
                     scope.feedback_url = appConfig.feedback_url;
+
+                    // multi-tenancy: tenant switcher + tenant administration entry
+                    scope.userTenants = [];
+                    scope.tenantAdminUrl = '';
+
+                    function loadTenants(refresh: boolean = false) {
+                        if (!multiTenantEnabled()) {
+                            return;
+                        }
+
+                        getMyTenants(refresh).then((res) => {
+                            scope.$applyAsync(() => {
+                                scope.userTenants =
+                                    sharedAccountsEnabled() && (res.tenants ?? []).length >= 2
+                                        ? res.tenants
+                                        : [];
+                                scope.tenantAdminUrl = res.is_super_admin === true
+                                    ? getTenantAdminUrl()
+                                    : '';
+                            });
+                        }, () => {
+                            // endpoint unavailable — leave tenant UI hidden
+                        });
+                    }
+
+                    loadTenants();
+                    hasExchangePartners(); // warm the cache for the "Send to tenant" action condition
+
+                    scope.refreshTenants = () => loadTenants(true);
+                    scope.isCurrentTenant = isCurrentTenant;
+                    scope.switchTenant = switchToTenant;
+                    scope.tenantLabel = getTenantLabel;
+                    scope.tenantSwitchTitle = (tenant: ITenantRef) => gettext(
+                        'You are switching to {{tenant}}; sign in with your usual password.',
+                        {tenant: getTenantLabel(tenant)},
+                    );
 
                     superdesk.getMenu(superdesk.MENU_MAIN)
                         .then(filterSettingsIfEmpty)

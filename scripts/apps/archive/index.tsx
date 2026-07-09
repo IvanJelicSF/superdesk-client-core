@@ -20,6 +20,8 @@ import {extensions} from 'appConfig';
 
 import {IExtensionActivationResult, IArticle} from 'superdesk-api';
 import {showSpikeDialog} from './show-spike-dialog';
+import {showSendToTenantModal} from './send-to-tenant-modal';
+import {hasExchangePartners, multiTenantEnabled} from 'core/multi-tenancy';
 import {AuthoringWorkspaceService} from 'apps/authoring/authoring/services';
 import * as actions from './actions';
 import {RelatedView} from './views/related-view';
@@ -337,6 +339,19 @@ angular.module('superdesk.apps.archive', [
                 controller: ['data', 'authoring', function(data, authoring) {
                     authoring.correction(data.item.archive_item || data.item, false, true);
                 }],
+            })
+            .activity('sendToTenant', {
+                label: gettext('Send to tenant...'),
+                icon: 'share-alt',
+                monitor: true,
+                controller: ['data', function(data) {
+                    showSendToTenantModal(data.item);
+                }],
+                filters: [{action: 'list', type: 'archive'}],
+                privileges: {send_to_tenant: 1},
+                condition: function() {
+                    return multiTenantEnabled() && hasExchangePartners();
+                },
             })
             .activity('export', {
                 label: gettext('Export'),

@@ -24,7 +24,12 @@
         </div>
 
         <div class="form__row form__row--no-padding credentials">
-            <div ng-include="types[destination.delivery_type].templateUrl"></div>
+            <div ng-if="destination.delivery_type !== 'internal_tenant'" ng-include="types[destination.delivery_type].templateUrl"></div>
+            <sd-internal-tenant-config
+                ng-if="destination.delivery_type === 'internal_tenant'"
+                data-config="destination.config"
+                data-on-change="onInternalTenantConfigChange"
+            ></sd-internal-tenant-config>
         </div>
 
         <div class="form__row" ng-if="actions" style="text-align:right;">

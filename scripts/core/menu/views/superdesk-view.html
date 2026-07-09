@@ -49,3 +49,16 @@
 <div class="hard-error" ng-if="serverStatus">
     <div class="alert alert-error" translate>Superdesk is experiencing network connection issues:/</div>
 </div>
+
+<!-- multi-tenancy: HTTP 423 — tenant suspended or still being provisioned -->
+<div
+    ng-if="tenantUnavailable"
+    data-test-id="tenant-unavailable"
+    style="position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: var(--sd-colour-bg--00, #fff); text-align: center;"
+>
+    <div>
+        <i class="big-icon--warning-triangle" style="font-size: 48px;"></i>
+        <h1 class="sd-margin-y--2" translate>This newsroom is currently unavailable</h1>
+        <p translate>Please try again later or contact your administrator.</p>
+    </div>
+</div>

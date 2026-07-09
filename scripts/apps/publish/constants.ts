@@ -17,4 +17,6 @@ export const transmissionTypes = {
     amazon_sqs_fifo: {
         templateUrl: 'scripts/apps/publish/views/amazon-sqs-fifo-config.html',
     },
+    // `internal_tenant` (multi-tenancy) is rendered as a React component
+    // in destination.html rather than via templateUrl
 };

@@ -15,6 +15,8 @@ import * as directive from './directives';
 import * as filter from './filters';
 import {coreMenuGroups} from 'core/activity/activity';
 import {gettext} from 'core/utils';
+import {reactToAngular1} from 'superdesk-ui-framework';
+import {InternalTenantDestinationConfig} from './internal-tenant-destination-config';
 
 /**
  * @ngdoc module
@@ -30,6 +32,10 @@ export default angular.module('superdesk.apps.publish', ['superdesk.apps.users',
 
     .directive('sdAdminPubSubscribers', directive.SubscribersDirective)
     .directive('sdDestination', directive.DestinationDirective)
+    .component(
+        'sdInternalTenantConfig',
+        reactToAngular1(InternalTenantDestinationConfig, ['config', 'onChange']),
+    )
 
     .filter('subscribersBy', filter.SubscribersFilter)
     .controller('publishQueueCtrl', ctrl.PublishQueueController)

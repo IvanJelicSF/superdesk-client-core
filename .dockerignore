@@ -1,0 +1,7 @@
+.git
+node_modules
+dist
+e2e/node_modules
+e2e/client/node_modules
+e2e/server/env
+**/__pycache__
