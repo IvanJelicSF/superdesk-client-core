@@ -56,10 +56,17 @@ export interface IAccount {
     _updated?: string;
 }
 
-export interface IWebhookConfig {
+/** the literal id of the read-only webhook backed by TENANT_WEBHOOK_URL */
+export const CONFIG_WEBHOOK_ID = 'config';
+
+export interface IWebhook {
+    _id: string; // `config` for the config-file webhook — read-only
+    name?: string;
     url: string;
     has_secret: boolean;
-    source: 'control-plane' | 'config' | 'none';
+    is_enabled: boolean;
+    _created?: string;
+    _updated?: string;
 }
 
 export interface IAdminApiError {
@@ -203,16 +210,33 @@ export function addUserToTenant(
     return adminRequest('POST', `/tenant-admin/tenants/${slug}/users`, payload);
 }
 
-// webhook
+// webhooks — every enabled webhook receives all tenant lifecycle events
 
-export function getWebhook(): Promise<IWebhookConfig> {
-    return adminRequest('GET', '/tenant-admin/webhook');
+export function listWebhooks(): Promise<Array<IWebhook>> {
+    return adminRequest('GET', '/tenant-admin/webhooks');
 }
 
-export function putWebhook(payload: {url: string; secret?: string}): Promise<IWebhookConfig> {
-    return adminRequest('PUT', '/tenant-admin/webhook', payload);
+export function createWebhook(payload: {
+    url: string;
+    secret?: string;
+    name?: string;
+    is_enabled?: boolean;
+}): Promise<IWebhook> {
+    return adminRequest('POST', '/tenant-admin/webhooks', payload);
 }
 
-export function testWebhook(): Promise<{_status: string; response_status: number}> {
-    return adminRequest('POST', '/tenant-admin/webhook/test');
+/** `secret` is write-only: omit to keep the stored one, send "" to clear. */
+export function patchWebhook(
+    id: string,
+    payload: {url?: string; secret?: string; name?: string; is_enabled?: boolean},
+): Promise<IWebhook> {
+    return adminRequest('PATCH', `/tenant-admin/webhooks/${id}`, payload);
+}
+
+export function deleteWebhook(id: string): Promise<{_status: string}> {
+    return adminRequest('DELETE', `/tenant-admin/webhooks/${id}`);
+}
+
+export function testWebhook(id: string): Promise<{_status: string; response_status: number}> {
+    return adminRequest('POST', `/tenant-admin/webhooks/${id}/test`);
 }

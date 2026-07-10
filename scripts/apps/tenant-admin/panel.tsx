@@ -73,7 +73,7 @@ export class TenantAdminPanel extends React.PureComponent<{}, IState> {
         const tabs: Array<{id: ITab; label: string}> = [
             {id: 'tenants', label: gettext('Tenants')},
             {id: 'accounts', label: gettext('Accounts')},
-            {id: 'webhook', label: gettext('Webhook')},
+            {id: 'webhook', label: gettext('Webhooks')},
         ];
 
         return (
