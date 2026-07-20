@@ -1,5 +1,6 @@
 import React from 'react';
-import {Alert, Button, Checkbox, Input, Modal} from 'superdesk-ui-framework/react';
+import {Alert, BoxedList, BoxedListItem, Button, Checkbox, Input, Modal} from 'superdesk-ui-framework/react';
+import {Button as NavButton} from 'core/ui/components/Nav';
 import {Spacer} from 'core/ui/components/Spacer';
 import {gettext} from 'core/utils';
 import {
@@ -13,7 +14,17 @@ import {
     testWebhook,
 } from './api';
 
-const cellStyle: React.CSSProperties = {padding: '8px 12px', textAlign: 'start', verticalAlign: 'top'};
+/** Fixed so every row's content grid is equally wide and the columns line up. */
+const ACTIONS_WIDTH = 360;
+
+/** One grid for the list header and the item content, so the columns line up. */
+const listGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '2fr 2.4fr 1fr 1.2fr',
+    gap: 12,
+    alignItems: 'start',
+    width: '100%',
+};
 
 interface IProps {
     onSessionExpired(): void;
@@ -111,11 +122,24 @@ export class WebhookScreen extends React.PureComponent<IProps, IState> {
         const {webhooks, error, info} = this.state;
 
         if (webhooks == null && error == null) {
-            return <div>{gettext('Loading...')}</div>;
+            return <div style={{padding: 20}}>{gettext('Loading...')}</div>;
         }
 
         return (
-            <div>
+            <div style={{display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden'}}>
+                <div className="subnav">
+                    <div style={{flexGrow: 1}} />
+                    <NavButton
+                        onClick={() => this.setState({editing: 'new'})}
+                        className="sd-create-btn dropdown-toggle"
+                        icon="icon-plus-large"
+                        aria-label={gettext('Add webhook')}
+                        data-test-id="create-webhook"
+                    >
+                        <span className="circle" />
+                    </NavButton>
+                </div>
+
                 {error != null && (
                     <Alert type="alert" size="small" margin="small">{error}</Alert>
                 )}
@@ -123,40 +147,43 @@ export class WebhookScreen extends React.PureComponent<IProps, IState> {
                     <Alert type="success" size="small" margin="small">{info}</Alert>
                 )}
 
-                <Spacer h gap="8" justifyContent="space-between" noGrow>
-                    <h2 style={{fontSize: 18}}>{gettext('Lifecycle webhooks')}</h2>
-                    <Button
-                        text={gettext('Add webhook')}
-                        type="primary"
-                        onClick={() => this.setState({editing: 'new'})}
-                    />
-                </Spacer>
+                <div style={{margin: 20, overflow: 'auto'}}>
+                    <p>
+                        {gettext(
+                            'Every enabled webhook receives all tenant lifecycle events '
+                            + '(suspended, activated, deleted, purged), signed with its own secret.',
+                        )}
+                    </p>
 
-                <p style={{marginBlockStart: 8}}>
-                    {gettext(
-                        'Every enabled webhook receives all tenant lifecycle events '
-                        + '(suspended, activated, deleted, purged), signed with its own secret.',
-                    )}
-                </p>
+                    <div data-test-id="webhooks-table">
+                        <div style={{display: 'flex', alignItems: 'center', paddingBlock: 8}}>
+                            <div
+                                style={{
+                                    ...listGridStyle,
+                                    // match the item content offset (item padding)
+                                    paddingInlineStart: 20,
+                                    flex: '1 1 auto',
+                                    minWidth: 0,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <span>{gettext('Name')}</span>
+                                <span>{gettext('URL')}</span>
+                                <span>{gettext('State')}</span>
+                                <span>{gettext('Secret')}</span>
+                            </div>
+                            <div style={{width: ACTIONS_WIDTH + 20, flexShrink: 0}} />
+                        </div>
 
-                <table style={{width: '100%', marginBlockStart: 12}} data-test-id="webhooks-table">
-                    <thead>
-                        <tr style={{borderBlockEnd: '1px solid var(--sd-colour-line--light, #ddd)'}}>
-                            <th style={cellStyle}>{gettext('Name')}</th>
-                            <th style={cellStyle}>{gettext('URL')}</th>
-                            <th style={cellStyle}>{gettext('State')}</th>
-                            <th style={cellStyle}>{gettext('Secret')}</th>
-                            <th style={cellStyle}>{gettext('Actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {(webhooks ?? []).map((webhook) => this.renderRow(webhook))}
-                    </tbody>
-                </table>
+                        <BoxedList density="compact">
+                            {(webhooks ?? []).map((webhook) => this.renderRow(webhook))}
+                        </BoxedList>
 
-                {(webhooks ?? []).length === 0 && (
-                    <p style={{padding: 12}}>{gettext('No webhooks configured.')}</p>
-                )}
+                        {(webhooks ?? []).length === 0 && (
+                            <p style={{padding: 12}}>{gettext('No webhooks configured.')}</p>
+                        )}
+                    </div>
+                </div>
 
                 {this.state.editing != null && (
                     <EditWebhookModal
@@ -206,73 +233,78 @@ export class WebhookScreen extends React.PureComponent<IProps, IState> {
         );
     }
 
-    private renderRow(webhook: IWebhook): JSX.Element {
+    private renderActions(webhook: IWebhook): JSX.Element {
         const busy = this.state.busyId === webhook._id;
         const isConfig = webhook._id === CONFIG_WEBHOOK_ID;
 
         return (
-            <tr
+            <Spacer h gap="4" noGrow justifyContent="end" style={{width: ACTIONS_WIDTH}}>
+                <Button
+                    text={gettext('Send test event')}
+                    size="small"
+                    type="default"
+                    style="hollow"
+                    disabled={busy}
+                    onClick={() => this.test(webhook)}
+                />
+                {!isConfig && (
+                    <Button
+                        text={webhook.is_enabled === false ? gettext('Enable') : gettext('Disable')}
+                        size="small"
+                        type={webhook.is_enabled === false ? 'primary' : 'warning'}
+                        style="hollow"
+                        disabled={busy}
+                        onClick={() => this.toggleEnabled(webhook)}
+                    />
+                )}
+                {!isConfig && (
+                    <Button
+                        text={gettext('Edit')}
+                        size="small"
+                        type="default"
+                        style="hollow"
+                        disabled={busy}
+                        onClick={() => this.setState({editing: webhook})}
+                    />
+                )}
+                {!isConfig && (
+                    <Button
+                        text={gettext('Delete')}
+                        size="small"
+                        type="alert"
+                        style="hollow"
+                        disabled={busy}
+                        onClick={() => this.setState({deleteConfirm: webhook})}
+                    />
+                )}
+            </Spacer>
+        );
+    }
+
+    private renderRow(webhook: IWebhook): JSX.Element {
+        const isConfig = webhook._id === CONFIG_WEBHOOK_ID;
+
+        return (
+            <BoxedListItem
                 key={webhook._id}
-                style={{borderBlockEnd: '1px solid var(--sd-colour-line--light, #eee)'}}
+                type={webhook.is_enabled === false ? 'warning' : 'success'}
+                alignVertical="start"
+                actions={this.renderActions(webhook)}
             >
-                <td style={cellStyle}>
-                    <strong>{webhook.name || gettext('(unnamed)')}</strong>
-                    {isConfig && (
-                        <div style={{opacity: 0.6, fontSize: '0.9em'}}>
-                            {gettext('from the server configuration file — read only')}
-                        </div>
-                    )}
-                </td>
-                <td style={cellStyle}>{webhook.url}</td>
-                <td style={cellStyle}>
-                    {webhook.is_enabled === false ? gettext('disabled') : gettext('enabled')}
-                </td>
-                <td style={cellStyle}>
-                    {webhook.has_secret ? gettext('secret is set') : ''}
-                </td>
-                <td style={cellStyle}>
-                    <Spacer h gap="4" noGrow justifyContent="start">
-                        <Button
-                            text={gettext('Send test event')}
-                            size="small"
-                            type="default"
-                            style="hollow"
-                            disabled={busy}
-                            onClick={() => this.test(webhook)}
-                        />
-                        {!isConfig && (
-                            <Button
-                                text={webhook.is_enabled === false ? gettext('Enable') : gettext('Disable')}
-                                size="small"
-                                type={webhook.is_enabled === false ? 'primary' : 'warning'}
-                                style="hollow"
-                                disabled={busy}
-                                onClick={() => this.toggleEnabled(webhook)}
-                            />
+                <div style={listGridStyle}>
+                    <div>
+                        <strong>{webhook.name || gettext('(unnamed)')}</strong>
+                        {isConfig && (
+                            <div style={{opacity: 0.6, fontSize: '0.9em'}}>
+                                {gettext('from the server configuration file — read only')}
+                            </div>
                         )}
-                        {!isConfig && (
-                            <Button
-                                text={gettext('Edit')}
-                                size="small"
-                                type="default"
-                                style="hollow"
-                                disabled={busy}
-                                onClick={() => this.setState({editing: webhook})}
-                            />
-                        )}
-                        {!isConfig && (
-                            <Button
-                                text={gettext('Delete')}
-                                size="small"
-                                type="alert"
-                                style="hollow"
-                                disabled={busy}
-                                onClick={() => this.setState({deleteConfirm: webhook})}
-                            />
-                        )}
-                    </Spacer>
-                </td>
-            </tr>
+                    </div>
+                    <div style={{wordBreak: 'break-all'}}>{webhook.url}</div>
+                    <div>{webhook.is_enabled === false ? gettext('disabled') : gettext('enabled')}</div>
+                    <div>{webhook.has_secret ? gettext('secret is set') : ''}</div>
+                </div>
+            </BoxedListItem>
         );
     }
 }

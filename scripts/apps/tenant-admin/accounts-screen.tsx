@@ -1,5 +1,31 @@
 import React from 'react';
-import {Alert, Button, Checkbox, Input, Modal, Option, Select} from 'superdesk-ui-framework/react';
+import {
+    Alert,
+    BoxedList,
+    BoxedListItem,
+    Button,
+    ButtonGroup,
+    Checkbox,
+    Input,
+    Modal,
+    MultiSelect,
+    Option,
+    Select,
+    WithPagination,
+} from 'superdesk-ui-framework/react';
+import {SearchBar} from 'core/ui/components';
+import {Button as NavButton} from 'core/ui/components/Nav';
+import {TagLabel} from 'core/ui/components/TagLabel';
+import {PageContainer, PageContainerItem} from 'core/components/PageLayout';
+import {
+    SidePanel,
+    SidePanelHeader,
+    SidePanelHeading,
+    SidePanelTools,
+    SidePanelContent,
+    SidePanelContentBlock,
+    SidePanelFooter,
+} from 'core/components/SidePanel';
 import {Spacer} from 'core/ui/components/Spacer';
 import {gettext} from 'core/utils';
 import {
@@ -13,52 +39,151 @@ import {
     patchAccount,
 } from './api';
 
-const cellStyle: React.CSSProperties = {padding: '8px 12px', textAlign: 'start', verticalAlign: 'top'};
+const PAGE_SIZE = 50;
+
+/** Fixed so every row's content grid is equally wide and the columns line up. */
+const ACTIONS_WIDTH = 240;
+
+/** One grid for the list header and the item content, so the columns line up. */
+const listGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1.4fr 1.6fr 2fr',
+    gap: 12,
+    alignItems: 'start',
+    width: '100%',
+};
 
 interface IProps {
     onSessionExpired(): void;
 }
 
+type IStatusFilter = 'enabled' | 'disabled';
+type ITypeFilter = 'super_admin' | 'regular';
+
+/** The fields of the "Refine search" panel (everything except the search bar's `q`). */
+interface IAccountPanelFilters {
+    status: Array<IStatusFilter>;
+    type: Array<ITypeFilter>;
+    tenant: Array<string>; // accounts assigned to any of those tenants
+}
+
+interface IAccountFilters extends IAccountPanelFilters {
+    q: string;
+}
+
+const emptyPanelFilters: IAccountPanelFilters = {status: [], type: [], tenant: []};
+const emptyFilters: IAccountFilters = {...emptyPanelFilters, q: ''};
+
+const statusLabels: {[status in IStatusFilter]: () => string} = {
+    enabled: () => gettext('enabled'),
+    disabled: () => gettext('disabled'),
+};
+
+const typeLabels: {[type in ITypeFilter]: () => string} = {
+    super_admin: () => gettext('super admin'),
+    regular: () => gettext('regular'),
+};
+
+function hasActiveFilters(filters: IAccountFilters): boolean {
+    return Object.keys(filters).some((key) => {
+        const value: string | Array<string> = filters[key];
+
+        return typeof value === 'string' ? value !== '' : value.length > 0;
+    });
+}
+
+/** A both-values multiselect means "everything" — same as no filter. */
+function exclusiveBoolean<T>(values: Array<T>, trueValue: T): boolean | null {
+    return values.length === 1 ? values[0] === trueValue : null;
+}
+
 interface IState {
-    accounts: Array<IAccount> | null;
-    tenants: Array<ITenant>; // for the "add user to tenant" select
+    tenants: Array<ITenant>; // for the tenant filter and the "add user to tenant" select
     error: string | null;
     createOpen: boolean;
     editAccount: IAccount | null;
     addUserAccount: IAccount | null;
+
+    filtersOpen: boolean;
+
+    /** the "Refine search" panel draft; copied to `filters` on submit */
+    panelFilters: IAccountPanelFilters;
+
+    /** the applied filters the list is fetched with */
+    filters: IAccountFilters;
+
+    /** bumped after every mutation to remount the paginated list */
+    version: number;
 }
 
 export class AccountsScreen extends React.PureComponent<IProps, IState> {
+    private searchBarRef: SearchBar | null;
+
     constructor(props: IProps) {
         super(props);
 
         this.state = {
-            accounts: null,
             tenants: [],
             error: null,
             createOpen: false,
             editAccount: null,
             addUserAccount: null,
+            filtersOpen: false,
+            panelFilters: emptyPanelFilters,
+            filters: emptyFilters,
+            version: 0,
         };
 
         this.load = this.load.bind(this);
         this.handleError = this.handleError.bind(this);
+        this.applyPanelFilters = this.applyPanelFilters.bind(this);
+        this.clearPanelFilters = this.clearPanelFilters.bind(this);
     }
 
     componentDidMount(): void {
-        this.load();
-
-        listTenants().then((tenants) => {
-            this.setState({tenants: tenants.filter((tenant) => tenant.status === 'active')});
+        listTenants({maxResults: 200}).then((res) => {
+            this.setState({tenants: res._items});
         }, () => {
-            // tenant list is only needed for the "add user" select; ignore failures here
+            // tenant list is only needed for the filter and "add user" selects; ignore failures here
         });
     }
 
+    /** Re-fetches the current page by remounting the paginated list. */
     private load() {
-        listAccounts().then((accounts) => {
-            this.setState({accounts: accounts, error: null});
-        }, (err) => this.handleError(err, gettext('Could not load accounts')));
+        this.setState((state) => ({version: state.version + 1}));
+    }
+
+    private setPanelFilters(patch: Partial<IAccountPanelFilters>) {
+        this.setState((state) => ({panelFilters: {...state.panelFilters, ...patch}}));
+    }
+
+    private applyPanelFilters() {
+        this.setState((state) => ({
+            filters: {...state.panelFilters, q: state.filters.q},
+        }));
+    }
+
+    private clearPanelFilters() {
+        this.setState((state) => ({
+            panelFilters: emptyPanelFilters,
+            filters: {...emptyFilters, q: state.filters.q},
+        }));
+    }
+
+    /** Un-apply a single filter (the tag labels' remove buttons). */
+    private removeFilter(key: keyof IAccountFilters) {
+        if (key === 'q') {
+            this.searchBarRef?.resetSearchValue();
+        }
+
+        this.setState((state) => {
+            const cleared = {[key]: emptyFilters[key]};
+
+            return {
+                filters: {...state.filters, ...cleared},
+                panelFilters: {...state.panelFilters, ...(key === 'q' ? {} : cleared)},
+            };
+        });
     }
 
     private handleError(err: unknown, fallback: string) {
@@ -90,75 +215,282 @@ export class AccountsScreen extends React.PureComponent<IProps, IState> {
         return flags.join(', ');
     }
 
-    render(): JSX.Element {
-        const {accounts, error} = this.state;
+    private renderActions(account: IAccount): JSX.Element {
+        return (
+            <Spacer h gap="4" noGrow justifyContent="end" style={{width: ACTIONS_WIDTH}}>
+                <Button
+                    text={gettext('Edit')}
+                    size="small"
+                    type="default"
+                    style="hollow"
+                    onClick={() => this.setState({editAccount: account})}
+                />
+                <Button
+                    text={gettext('Add user to tenant')}
+                    size="small"
+                    type="default"
+                    style="hollow"
+                    onClick={() => this.setState({addUserAccount: account})}
+                />
+            </Spacer>
+        );
+    }
 
-        if (accounts == null && error == null) {
-            return <div>{gettext('Loading...')}</div>;
+    /** The applied filters as removable tags, like Superdesk list pages show them. */
+    private renderFilterTags(): JSX.Element | null {
+        const {filters} = this.state;
+        const tags: Array<{key: keyof IAccountFilters; label: string; value: string}> = [];
+
+        if (filters.q !== '') {
+            tags.push({key: 'q', label: gettext('Search'), value: filters.q});
+        }
+
+        if (filters.status.length > 0) {
+            tags.push({
+                key: 'status',
+                label: gettext('Status'),
+                value: filters.status.map((status) => statusLabels[status]()).join(', '),
+            });
+        }
+
+        if (filters.type.length > 0) {
+            tags.push({
+                key: 'type',
+                label: gettext('Type'),
+                value: filters.type.map((type) => typeLabels[type]()).join(', '),
+            });
+        }
+
+        if (filters.tenant.length > 0) {
+            tags.push({key: 'tenant', label: gettext('Tenant'), value: filters.tenant.join(', ')});
+        }
+
+        if (tags.length < 1) {
+            return null;
         }
 
         return (
-            <div>
+            <div
+                style={{display: 'flex', flexWrap: 'wrap', gap: 4, marginBlockEnd: 12}}
+                data-test-id="accounts-filters-active"
+            >
+                {tags.map((tag) => (
+                    <TagLabel key={tag.key} onRemove={() => this.removeFilter(tag.key)}>
+                        {tag.label}:&nbsp;<strong>{tag.value}</strong>
+                    </TagLabel>
+                ))}
+            </div>
+        );
+    }
+
+    private renderFiltersPanel(): JSX.Element {
+        const {panelFilters} = this.state;
+
+        return (
+            <SidePanel side="left" width={320} data-test-id="accounts-filters">
+                <SidePanelHeader>
+                    <SidePanelHeading>{gettext('Refine search')}</SidePanelHeading>
+                    <SidePanelTools>
+                        <button
+                            className="icn-btn"
+                            aria-label={gettext('Close filters')}
+                            onClick={() => this.setState({filtersOpen: false})}
+                        >
+                            <i className="icon-close-small" />
+                        </button>
+                    </SidePanelTools>
+                </SidePanelHeader>
+                <SidePanelContent>
+                    <SidePanelContentBlock>
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                this.applyPanelFilters();
+                            }}
+                        >
+                            <Spacer v gap="16">
+                                <MultiSelect
+                                    label={gettext('Status')}
+                                    value={panelFilters.status}
+                                    options={['enabled', 'disabled']}
+                                    optionLabel={(status: IStatusFilter) => statusLabels[status]()}
+                                    onChange={(status: Array<IStatusFilter>) => this.setPanelFilters({status})}
+                                />
+                                <MultiSelect
+                                    label={gettext('Type')}
+                                    value={panelFilters.type}
+                                    options={['super_admin', 'regular']}
+                                    optionLabel={(type: ITypeFilter) => typeLabels[type]()}
+                                    onChange={(type: Array<ITypeFilter>) => this.setPanelFilters({type})}
+                                />
+                                <MultiSelect
+                                    label={gettext('Tenant')}
+                                    value={panelFilters.tenant}
+                                    options={this.state.tenants.map((tenant) => tenant.slug)}
+                                    optionLabel={(slug: string) => slug}
+                                    onChange={(tenant: Array<string>) => this.setPanelFilters({tenant})}
+                                />
+                            </Spacer>
+                        </form>
+                    </SidePanelContentBlock>
+                </SidePanelContent>
+                <SidePanelFooter>
+                    <ButtonGroup align="end">
+                        <Button
+                            text={gettext('Clear filters')}
+                            onClick={this.clearPanelFilters}
+                            data-test-id="filters-clear"
+                        />
+                        <Button
+                            text={gettext('Filter')}
+                            type="primary"
+                            onClick={this.applyPanelFilters}
+                            data-test-id="filters-submit"
+                        />
+                    </ButtonGroup>
+                </SidePanelFooter>
+            </SidePanel>
+        );
+    }
+
+    render(): JSX.Element {
+        const {error} = this.state;
+
+        return (
+            <div style={{display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden'}}>
+                <div className="subnav">
+                    <NavButton
+                        icon="icon-filter-large"
+                        onClick={() => this.setState({filtersOpen: !this.state.filtersOpen})}
+                        active={this.state.filtersOpen}
+                        darker={true}
+                        aria-label={gettext('Toggle filters')}
+                        data-test-id="toggle-filters"
+                    />
+                    <div style={{flexGrow: 1}}>
+                        <SearchBar
+                            ref={(instance) => {
+                                this.searchBarRef = instance;
+                            }}
+                            allowCollapsed={false}
+                            debounced={{timeout: 300}}
+                            onSearch={(q: string) => {
+                                this.setState((state) => ({filters: {...state.filters, q: q.trim()}}));
+                            }}
+                        />
+                    </div>
+                    <NavButton
+                        onClick={() => this.setState({createOpen: true})}
+                        className="sd-create-btn dropdown-toggle"
+                        icon="icon-plus-large"
+                        aria-label={gettext('Create account')}
+                        data-test-id="create-account"
+                    >
+                        <span className="circle" />
+                    </NavButton>
+                </div>
+
                 {error != null && (
                     <Alert type="alert" size="small" margin="small">{error}</Alert>
                 )}
 
-                <Spacer h gap="8" justifyContent="space-between" noGrow>
-                    <h2 style={{fontSize: 18}}>{gettext('Accounts')}</h2>
-                    <Button
-                        text={gettext('Create account')}
-                        type="primary"
-                        onClick={() => this.setState({createOpen: true})}
-                    />
-                </Spacer>
+                <PageContainer>
+                    {this.state.filtersOpen && (
+                        <PageContainerItem>
+                            {this.renderFiltersPanel()}
+                        </PageContainerItem>
+                    )}
+                    <PageContainerItem shrink>
+                        <div style={{margin: 20}}>
+                            {this.renderFilterTags()}
+                            {this.renderList()}
+                        </div>
+                    </PageContainerItem>
+                </PageContainer>
 
-                <table style={{width: '100%', marginBlockStart: 12}} data-test-id="accounts-table">
-                    <thead>
-                        <tr style={{borderBlockEnd: '1px solid var(--sd-colour-line--light, #ddd)'}}>
-                            <th style={cellStyle}>{gettext('Email')}</th>
-                            <th style={cellStyle}>{gettext('Username')}</th>
-                            <th style={cellStyle}>{gettext('Flags')}</th>
-                            <th style={cellStyle}>{gettext('Tenants')}</th>
-                            <th style={cellStyle}>{gettext('Actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {(accounts ?? []).map((account) => (
-                            <tr
-                                key={account.email}
-                                style={{borderBlockEnd: '1px solid var(--sd-colour-line--light, #eee)'}}
+                {this.renderModals()}
+            </div>
+        );
+    }
+
+    private renderList(): JSX.Element {
+        return (
+            <WithPagination
+                key={`${JSON.stringify(this.state.filters)}:${this.state.version}`}
+                pageSize={PAGE_SIZE}
+                getItems={(pageNo, pageSize) => {
+                    const {filters} = this.state;
+
+                    return listAccounts({
+                        page: pageNo,
+                        maxResults: pageSize,
+                        q: filters.q,
+                        tenant: filters.tenant,
+                        enabled: exclusiveBoolean(filters.status, 'enabled'),
+                        superAdmin: exclusiveBoolean(filters.type, 'super_admin'),
+                    })
+                        .then((res) => ({items: res._items, itemCount: res._meta.total}), (err) => {
+                            this.handleError(err, gettext('Could not load accounts'));
+
+                            return {items: [], itemCount: 0};
+                        });
+                }}
+            >
+                {(accounts: Array<IAccount>) => (
+                    <div data-test-id="accounts-table">
+                        <div style={{display: 'flex', alignItems: 'center', paddingBlock: 8}}>
+                            <div
+                                style={{
+                                    ...listGridStyle,
+                                    // match the item content offset (item padding)
+                                    paddingInlineStart: 20,
+                                    flex: '1 1 auto',
+                                    minWidth: 0,
+                                    fontWeight: 600,
+                                }}
                             >
-                                <td style={cellStyle}><strong>{account.email}</strong></td>
-                                <td style={cellStyle}>{account.username ?? ''}</td>
-                                <td style={cellStyle}>{this.renderFlags(account)}</td>
-                                <td style={cellStyle}>{(account.tenants ?? []).join(', ')}</td>
-                                <td style={cellStyle}>
-                                    <Spacer h gap="4" noGrow justifyContent="start">
-                                        <Button
-                                            text={gettext('Edit')}
-                                            size="small"
-                                            type="default"
-                                            style="hollow"
-                                            onClick={() => this.setState({editAccount: account})}
-                                        />
-                                        <Button
-                                            text={gettext('Add user to tenant')}
-                                            size="small"
-                                            type="default"
-                                            style="hollow"
-                                            onClick={() => this.setState({addUserAccount: account})}
-                                        />
-                                    </Spacer>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                <span>{gettext('Email')}</span>
+                                <span>{gettext('Username')}</span>
+                                <span>{gettext('Flags')}</span>
+                                <span>{gettext('Tenants')}</span>
+                            </div>
+                            <div style={{width: ACTIONS_WIDTH + 20, flexShrink: 0}} />
+                        </div>
 
-                {(accounts ?? []).length === 0 && (
-                    <p style={{padding: 12}}>{gettext('No accounts yet.')}</p>
+                        <BoxedList density="compact">
+                            {accounts.map((account) => (
+                                <BoxedListItem
+                                    key={account.email}
+                                    type={account.is_enabled === false ? 'warning' : 'success'}
+                                    alignVertical="start"
+                                    actions={this.renderActions(account)}
+                                >
+                                    <div style={listGridStyle}>
+                                        <div><strong>{account.email}</strong></div>
+                                        <div>{account.username ?? ''}</div>
+                                        <div>{this.renderFlags(account)}</div>
+                                        <div>{(account.tenants ?? []).join(', ')}</div>
+                                    </div>
+                                </BoxedListItem>
+                            ))}
+                        </BoxedList>
+
+                        {accounts.length === 0 && (
+                            <p style={{padding: 12}}>
+                                {hasActiveFilters(this.state.filters)
+                                    ? gettext('No accounts match the filters.')
+                                    : gettext('No accounts yet.')}
+                            </p>
+                        )}
+                    </div>
                 )}
+            </WithPagination>
+        );
+    }
 
+    private renderModals(): JSX.Element {
+        return (
+            <React.Fragment>
                 {this.state.createOpen && (
                     <CreateAccountModal
                         onClose={(created) => {
@@ -187,7 +519,7 @@ export class AccountsScreen extends React.PureComponent<IProps, IState> {
                 {this.state.addUserAccount != null && (
                     <AddUserToTenantModal
                         account={this.state.addUserAccount}
-                        tenants={this.state.tenants}
+                        tenants={this.state.tenants.filter((tenant) => tenant.status === 'active')}
                         onClose={(added) => {
                             this.setState({addUserAccount: null});
 
@@ -197,7 +529,7 @@ export class AccountsScreen extends React.PureComponent<IProps, IState> {
                         }}
                     />
                 )}
-            </div>
+            </React.Fragment>
         );
     }
 }

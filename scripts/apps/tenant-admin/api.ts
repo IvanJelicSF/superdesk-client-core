@@ -75,6 +75,100 @@ export interface IAdminApiError {
     message: string | null;
 }
 
+/** Eve-style pagination envelope of the list endpoints. */
+export interface IPaginated<T> {
+    _items: Array<T>;
+    _meta: {page: number; max_results: number; total: number};
+}
+
+export interface IListQuery {
+    page?: number; // 1-based
+
+    /** server default 50, hard-capped at 200 */
+    maxResults?: number;
+
+    /** case-insensitive substring: slug+name (tenants), email+username (accounts) */
+    q?: string;
+}
+
+export type ITenantSortKey = 'slug' | 'name' | 'host' | 'status' | 'created' | 'updated' | 'partners';
+
+export interface ITenantListQuery extends IListQuery {
+    /** server default: created desc; timestamps default to desc, the rest to asc */
+    sort?: ITenantSortKey;
+    dir?: 'asc' | 'desc';
+
+    /** case-insensitive substring match against the tenant's hosts */
+    host?: string;
+
+    /** any of these statuses; invalid values are rejected with 400 */
+    status?: Array<ITenantStatus>;
+
+    /** tenants that have this slug as an exchange partner */
+    partner?: string;
+
+    /**
+     * ISO dates or datetimes, inclusive bounds on _created;
+     * a date-only createdTo covers that entire day
+     */
+    createdFrom?: string;
+    createdTo?: string;
+}
+
+export interface IAccountListQuery extends IListQuery {
+    /** a missing is_enabled flag counts as enabled */
+    enabled?: boolean | null;
+
+    superAdmin?: boolean | null;
+
+    /** accounts assigned to any of those tenants */
+    tenant?: Array<string>;
+}
+
+function listQueryString(options: ITenantListQuery & IAccountListQuery): string {
+    const params = new URLSearchParams();
+
+    if (options.page != null) {
+        params.set('page', String(options.page));
+    }
+
+    if (options.maxResults != null) {
+        params.set('max_results', String(options.maxResults));
+    }
+
+    const textParams: {[param: string]: string | undefined} = {
+        q: options.q,
+        host: options.host,
+        status: (options.status ?? []).join(','),
+        partner: options.partner,
+        created_from: options.createdFrom,
+        created_to: options.createdTo,
+        tenant: (options.tenant ?? []).join(','),
+        sort: options.sort,
+        dir: options.dir,
+    };
+
+    Object.keys(textParams).forEach((param) => {
+        const value = textParams[param];
+
+        if (value != null && value.trim() !== '') {
+            params.set(param, value.trim());
+        }
+    });
+
+    if (options.enabled != null) {
+        params.set('enabled', String(options.enabled));
+    }
+
+    if (options.superAdmin != null) {
+        params.set('super_admin', String(options.superAdmin));
+    }
+
+    const queryString = params.toString();
+
+    return queryString === '' ? '' : '?' + queryString;
+}
+
 export function getAdminErrorMessage(err: unknown, fallback: string): string {
     if (typeof err === 'object' && err != null && typeof (err as IAdminApiError).message === 'string') {
         return (err as IAdminApiError).message;
@@ -142,8 +236,8 @@ export function adminGetMe(): Promise<{auth: 'session' | 'token'; email?: string
 
 // tenants
 
-export function listTenants(): Promise<Array<ITenant>> {
-    return adminRequest('GET', '/tenant-admin/tenants');
+export function listTenants(options: ITenantListQuery = {}): Promise<IPaginated<ITenant>> {
+    return adminRequest('GET', '/tenant-admin/tenants' + listQueryString(options));
 }
 
 export function createTenant(payload: {
@@ -178,8 +272,8 @@ export function deleteTenant(slug: string): Promise<{_status: string; retention_
 
 // accounts
 
-export function listAccounts(): Promise<Array<IAccount>> {
-    return adminRequest('GET', '/tenant-admin/accounts');
+export function listAccounts(options: IAccountListQuery = {}): Promise<IPaginated<IAccount>> {
+    return adminRequest('GET', '/tenant-admin/accounts' + listQueryString(options));
 }
 
 export function createAccount(payload: {

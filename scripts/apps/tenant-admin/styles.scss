@@ -1,0 +1,36 @@
+// Styles of the standalone tenant administration panel. Everything must stay
+// scoped under .tenant-admin-panel — the bundle (and its CSS) is shared with
+// the main Superdesk app.
+
+.tenant-admin-panel {
+    .boxed-list__item-content {
+        padding: 0.4rem 0.8rem 0 0.8rem;
+    }
+
+    .tenant-admin-panel__sort-trigger {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        padding: 0 0.2rem;
+
+        i {
+            margin-inline-start: 0.2rem;
+            vertical-align: middle;
+        }
+    }
+
+    .tenant-admin-panel__host-link {
+        color: inherit;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+
+        i {
+            margin-inline-end: 0.4rem;
+            vertical-align: text-bottom;
+        }
+    }
+}

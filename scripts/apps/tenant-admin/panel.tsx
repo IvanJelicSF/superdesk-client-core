@@ -3,6 +3,7 @@ import {Alert, Button, Input} from 'superdesk-ui-framework/react';
 import {Spacer} from 'core/ui/components/Spacer';
 import {gettext} from 'core/utils';
 import {adminGetMe, adminLogin, adminLogout} from './api';
+import './styles.scss';
 import {TenantsScreen} from './tenants-screen';
 import {AccountsScreen} from './accounts-screen';
 import {WebhookScreen} from './webhook-screen';
@@ -70,42 +71,30 @@ export class TenantAdminPanel extends React.PureComponent<{}, IState> {
             );
         }
 
-        const tabs: Array<{id: ITab; label: string}> = [
-            {id: 'tenants', label: gettext('Tenants')},
-            {id: 'accounts', label: gettext('Accounts')},
-            {id: 'webhook', label: gettext('Webhooks')},
+        const tabs: Array<{id: ITab; label: string; icon: string}> = [
+            {id: 'tenants', label: gettext('Tenants'), icon: 'big-icon--dashboard-alt'},
+            {id: 'accounts', label: gettext('Users'), icon: 'big-icon--user'},
+            {id: 'webhook', label: gettext('Webhooks'), icon: 'big-icon--semantics'},
         ];
 
         return (
-            <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
-                <div
+            <div className="tenant-admin-panel" style={{height: '100vh', position: 'relative', overflow: 'hidden'}}>
+                <header
                     style={{
+                        height: '4.8rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '12px 20px',
+                        paddingInline: 16,
+                        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.16)',
+                        position: 'relative',
+                        zIndex: 1030, // above the sidebar menu
                         background: 'var(--sd-colour-bg--02, #2c2d2e)',
                         color: '#fff',
                     }}
                     data-test-id="tenant-admin-header"
                 >
-                    <Spacer h gap="16" noGrow justifyContent="start" alignItems="center">
-                        <strong>{gettext('Superdesk — Tenant administration')}</strong>
-                        <nav>
-                            <Spacer h gap="8" noGrow justifyContent="start">
-                                {tabs.map((tab) => (
-                                    <Button
-                                        key={tab.id}
-                                        text={tab.label}
-                                        theme="dark"
-                                        type={activeTab === tab.id ? 'primary' : 'default'}
-                                        style={activeTab === tab.id ? 'filled' : 'text-only'}
-                                        onClick={() => this.setState({activeTab: tab.id})}
-                                    />
-                                ))}
-                            </Spacer>
-                        </nav>
-                    </Spacer>
+                    <strong>{gettext('Superdesk — Tenant administration')}</strong>
                     <Spacer h gap="16" noGrow justifyContent="end" alignItems="center">
                         <span>{this.state.email}</span>
                         <Button
@@ -116,13 +105,57 @@ export class TenantAdminPanel extends React.PureComponent<{}, IState> {
                             onClick={this.logout}
                         />
                     </Spacer>
-                </div>
+                </header>
 
-                <div style={{flexGrow: 1, padding: 20}}>
+                <ul
+                    className="sd-sidebar-menu sd-sidebar-menu--left"
+                    style={{
+                        // the stylesheet positions it for the main app's layout; pin it below our header
+                        position: 'absolute',
+                        insetBlockStart: '4.8rem',
+                        insetBlockEnd: 0,
+                        insetInlineStart: 0,
+                        width: '4.8rem',
+                    }}
+                    data-test-id="tenant-admin-nav"
+                >
+                    {tabs.map((tab) => (
+                        <li key={tab.id}>
+                            <a
+                                role="button"
+                                className={
+                                    'sd-sidebar-menu__btn'
+                                    + (activeTab === tab.id ? ' sd-sidebar-menu__btn--active' : '')
+                                }
+                                title={tab.label}
+                                aria-label={tab.label}
+                                onClick={() => this.setState({activeTab: tab.id})}
+                                data-test-id={`tenant-admin-nav--${tab.id}`}
+                            >
+                                <span className="sd-sidebar-menu__main-icon">
+                                    <i className={tab.icon} />
+                                </span>
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+
+                <main
+                    style={{
+                        position: 'absolute',
+                        insetBlockStart: '4.8rem',
+                        insetInlineStart: '4.8rem',
+                        insetInlineEnd: 0,
+                        insetBlockEnd: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                    }}
+                >
                     {activeTab === 'tenants' && <TenantsScreen onSessionExpired={this.onSessionExpired} />}
                     {activeTab === 'accounts' && <AccountsScreen onSessionExpired={this.onSessionExpired} />}
                     {activeTab === 'webhook' && <WebhookScreen onSessionExpired={this.onSessionExpired} />}
-                </div>
+                </main>
             </div>
         );
     }
